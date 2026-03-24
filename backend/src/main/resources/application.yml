@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/webjuggler
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.H2Dialect
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+webjuggler:
+  upload:
+    path: ./uploads
+    max-size-mb: 500
+  cache:
+    max-size-mb: 1024
+  jwt:
+    secret: change-this-in-production-to-a-secure-random-key-at-least-256-bits
+    expiration-hours: 24
+  browse:
+    allowed-paths: []

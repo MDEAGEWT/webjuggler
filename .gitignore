@@ -1,0 +1,26 @@
+# Backend
+backend/build/
+backend/.gradle/
+backend/data/
+backend/uploads/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Superpowers
+.superpowers/
+
+# Playwright
+.playwright/
+
+# Agents
+.agents/
