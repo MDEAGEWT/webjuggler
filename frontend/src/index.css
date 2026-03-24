@@ -1,3 +1,436 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #0a0a14; color: #ccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-.app { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+
+body {
+  background: #0a0a14;
+  color: #ccc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+}
+
+/* ---- App Shell ---- */
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Top Bar ---- */
+.topbar {
+  height: 40px;
+  background: #12122a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  border-bottom: 1px solid #2a2a3e;
+  flex-shrink: 0;
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-logo {
+  font-weight: 700;
+  font-size: 15px;
+  color: #4fc3f7;
+  letter-spacing: 0.5px;
+}
+
+.topbar-btn {
+  background: #2a2a3e;
+  color: #ccc;
+  border: 1px solid #3a3a4e;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.topbar-btn:hover {
+  background: #3a3a4e;
+  color: #fff;
+}
+
+.topbar-filename {
+  color: #888;
+  font-size: 12px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-username {
+  color: #888;
+  font-size: 12px;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+  width: 240px;
+  background: #10102a;
+  border-right: 1px solid #2a2a3e;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-collapsed {
+  width: 28px;
+  align-items: center;
+  padding-top: 8px;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid #2a2a3e;
+}
+
+.sidebar-title {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 4px;
+}
+.sidebar-toggle:hover {
+  color: #ccc;
+}
+
+.sidebar-filter {
+  margin: 6px 8px;
+  padding: 5px 8px;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 12px;
+  outline: none;
+}
+.sidebar-filter:focus {
+  border-color: #4fc3f7;
+}
+
+.sidebar-empty {
+  padding: 20px 10px;
+  color: #555;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* ---- Topic Tree ---- */
+.topic-tree {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.topic-group {
+  border-bottom: 1px solid #1a1a2e;
+}
+
+.topic-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.topic-header:hover {
+  background: #1a1a2e;
+}
+
+.topic-arrow {
+  font-size: 10px;
+  color: #666;
+  width: 12px;
+  text-align: center;
+}
+
+.topic-name {
+  flex: 1;
+  font-size: 12px;
+  color: #bbb;
+}
+
+.topic-count {
+  font-size: 10px;
+  color: #555;
+}
+
+.topic-fields {
+  padding-left: 16px;
+}
+
+/* ---- Field Item ---- */
+.field-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  cursor: grab;
+  user-select: none;
+  font-size: 12px;
+  color: #999;
+}
+.field-item:hover {
+  background: #1a1a2e;
+  color: #ccc;
+}
+.field-item-selected {
+  background: #1e2a3e;
+  color: #4fc3f7;
+}
+.field-item:active {
+  cursor: grabbing;
+}
+
+.field-color-chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.field-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Plot Area ---- */
+.plot-area {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+.plot-panel {
+  flex: 1;
+  background: #12122a;
+  border: 1px solid #1a1a2e;
+  border-radius: 4px;
+  margin: 2px;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.empty-plot {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed #2a2a3e;
+  border-radius: 8px;
+  margin: 16px;
+  color: #444;
+  user-select: none;
+}
+
+.empty-plot-icon {
+  font-size: 36px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.empty-plot-text {
+  font-size: 13px;
+}
+
+.time-series-plot {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* uPlot overrides for dark theme */
+.time-series-plot .u-legend {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.time-series-plot .u-legend .u-series th {
+  color: #999;
+}
+.time-series-plot .u-legend .u-series td {
+  color: #ccc;
+}
+
+/* ---- Resize Handle ---- */
+.resize-handle {
+  background: #1a1a2e;
+  transition: background 0.15s;
+}
+.resize-handle:hover {
+  background: #4fc3f7;
+}
+.resize-handle[data-panel-group-direction="horizontal"] {
+  width: 4px;
+}
+.resize-handle[data-panel-group-direction="vertical"] {
+  height: 4px;
+}
+
+/* ---- Context Menu ---- */
+.context-menu {
+  position: fixed;
+  background: #1a1a2e;
+  border: 1px solid #3a3a4e;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  padding: 4px 0;
+  min-width: 160px;
+  z-index: 1000;
+}
+
+.context-menu-item {
+  padding: 6px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #ccc;
+}
+.context-menu-item:hover {
+  background: #2a2a3e;
+}
+.context-menu-item kbd {
+  font-size: 10px;
+  color: #666;
+  background: #0a0a14;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.context-menu-item-danger {
+  color: #ef5350;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: #2a2a3e;
+  margin: 4px 0;
+}
+
+/* ---- Login Page ---- */
+.login-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 12px;
+  padding: 40px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4fc3f7;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.login-subtitle {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.login-error {
+  background: rgba(239, 83, 80, 0.15);
+  color: #ef5350;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.login-input {
+  padding: 10px 12px;
+  background: #0a0a14;
+  border: 1px solid #2a2a3e;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 14px;
+  outline: none;
+}
+.login-input:focus {
+  border-color: #4fc3f7;
+}
+.login-input:disabled {
+  opacity: 0.5;
+}
+
+.login-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.login-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-btn-primary {
+  background: #4fc3f7;
+  color: #0a0a14;
+}
+.login-btn-primary:hover:not(:disabled) {
+  background: #6fd4ff;
+}
+
+.login-btn-secondary {
+  background: #2a2a3e;
+  color: #ccc;
+}
+.login-btn-secondary:hover:not(:disabled) {
+  background: #3a3a4e;
+}
