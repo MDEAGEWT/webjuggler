@@ -3,7 +3,7 @@ import type { LayoutNode, PlotNode } from '../types'
 
 let nextId = 1
 function makePlotNode(): PlotNode {
-  return { type: 'plot', id: `plot-${nextId++}`, series: [] }
+  return { type: 'plot', id: `plot-${nextId++}`, series: [], plotMode: 'timeseries' }
 }
 
 function findAndReplace(
@@ -82,10 +82,23 @@ export const useLayoutStore = create<LayoutState>((set) => ({
 
   addSeries: (id, fields) =>
     set((state) => ({
-      root: findAndUpdate(state.root, id, (node) => ({
-        ...node,
-        series: [...new Set([...node.series, ...fields])],
-      })),
+      root: findAndUpdate(state.root, id, (node) => {
+        const newSeries = [...new Set([...node.series, ...fields])]
+        // Determine plot mode based on how fields are dropped:
+        // - Multi-drop of 2 fields on an empty panel → 'xy'
+        // - Multi-drop of 3+ fields on an empty panel → '3d'
+        // - Single field drops keep/set 'timeseries'
+        let plotMode = node.plotMode
+        if (node.series.length === 0 && fields.length === 2) {
+          plotMode = 'xy'
+        } else if (node.series.length === 0 && fields.length >= 3) {
+          plotMode = '3d'
+        } else if (node.series.length === 0 && fields.length === 1) {
+          plotMode = 'timeseries'
+        }
+        // If already timeseries and adding one at a time, stay timeseries
+        return { ...node, series: newSeries, plotMode }
+      }),
     })),
 
   clearSeries: (id) =>
@@ -93,6 +106,7 @@ export const useLayoutStore = create<LayoutState>((set) => ({
       root: findAndUpdate(state.root, id, (node) => ({
         ...node,
         series: [],
+        plotMode: 'timeseries',
       })),
     })),
 }))

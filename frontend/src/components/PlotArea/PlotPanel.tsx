@@ -5,6 +5,8 @@ import { useDataStore } from '../../stores/useDataStore'
 import { useFileStore } from '../../stores/useFileStore'
 import EmptyPlot from './EmptyPlot'
 import TimeSeriesPlot from './TimeSeriesPlot'
+import XYPlot from './XYPlot'
+import ThreeDPlot from './ThreeDPlot'
 import ContextMenu from '../ContextMenu'
 
 interface Props {
@@ -61,6 +63,10 @@ export default function PlotPanel({ node }: Props) {
     >
       {node.series.length === 0 ? (
         <EmptyPlot />
+      ) : node.plotMode === 'xy' && node.series.length >= 2 ? (
+        <XYPlot panelId={node.id} series={node.series} />
+      ) : node.plotMode === '3d' && node.series.length >= 3 ? (
+        <ThreeDPlot panelId={node.id} series={node.series} />
       ) : (
         <TimeSeriesPlot panelId={node.id} series={node.series} />
       )}

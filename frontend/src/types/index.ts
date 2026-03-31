@@ -34,4 +34,5 @@ export interface PlotNode {
   type: 'plot'
   id: string
   series: string[]
+  plotMode: 'timeseries' | 'xy' | '3d'
 }

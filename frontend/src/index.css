@@ -228,10 +228,17 @@ body {
   flex: 1;
   overflow: hidden;
   display: flex;
+  height: 100%;
+}
+
+/* react-resizable-panels needs explicit height */
+.plot-area [data-panel-group-id] {
+  height: 100%;
 }
 
 .plot-panel {
-  flex: 1;
+  width: 100%;
+  height: 100%;
   background: #12122a;
   border: 1px solid #1a1a2e;
   border-radius: 4px;
@@ -270,6 +277,18 @@ body {
   min-height: 0;
 }
 
+.xy-plot {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.three-d-plot {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* uPlot overrides for dark theme */
 .time-series-plot .u-legend {
   background: #1a1a2e;
@@ -282,6 +301,21 @@ body {
   color: #999;
 }
 .time-series-plot .u-legend .u-series td {
+  color: #ccc;
+}
+
+/* uPlot overrides for XY plot dark theme */
+.xy-plot .u-legend {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.xy-plot .u-legend .u-series th {
+  color: #999;
+}
+.xy-plot .u-legend .u-series td {
   color: #ccc;
 }
 
