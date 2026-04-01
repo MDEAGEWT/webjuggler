@@ -24,3 +24,15 @@ frontend/dist/
 
 # Agents
 .agents/
+
+# Reference repos
+ref/
+
+# Test uploads
+backend/test-uploads/
+
+# Claude config
+.claude/
+
+# Lock files
+skills-lock.json

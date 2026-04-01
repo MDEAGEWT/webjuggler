@@ -290,99 +290,102 @@ public final class ULogParser {
 
             if (buf.remaining() < msgSize) break;
 
+            int msgEnd = buf.position() + msgSize;
+
             ULogMessageType type = ULogMessageType.fromCode(msgType);
             if (type == null) {
-                buf.position(buf.position() + msgSize);
+                buf.position(msgEnd);
                 continue;
             }
 
-            switch (type) {
-                case ADD_LOGGED_MSG -> {
-                    int multiId = Byte.toUnsignedInt(buf.get());
-                    int msgId = Short.toUnsignedInt(buf.getShort());
-                    byte[] nameBytes = new byte[msgSize - 3];
-                    buf.get(nameBytes);
-                    String messageName = new String(nameBytes, StandardCharsets.US_ASCII).trim();
+            try {
+                switch (type) {
+                    case ADD_LOGGED_MSG -> {
+                        int multiId = Byte.toUnsignedInt(buf.get());
+                        int msgId = Short.toUnsignedInt(buf.getShort());
+                        byte[] nameBytes = new byte[msgSize - 3];
+                        buf.get(nameBytes);
+                        String messageName = new String(nameBytes, StandardCharsets.US_ASCII).trim();
 
-                    Format format = formats.get(messageName);
-                    Subscription sub = new Subscription(msgId, multiId, messageName, format);
-                    subscriptions.put(msgId, sub);
+                        Format format = formats.get(messageName);
+                        Subscription sub = new Subscription(msgId, multiId, messageName, format);
+                        subscriptions.put(msgId, sub);
 
-                    if (multiId > 0) {
-                        messageNameWithMultiId.add(messageName);
-                    }
-                }
-                case REMOVE_LOGGED_MSG -> {
-                    int msgId = Short.toUnsignedInt(buf.getShort());
-                    subscriptions.remove(msgId);
-                    // skip remaining bytes if any
-                    int remaining = msgSize - 2;
-                    if (remaining > 0) buf.position(buf.position() + remaining);
-                }
-                case DATA -> {
-                    int msgId = Short.toUnsignedInt(buf.getShort());
-                    Subscription sub = subscriptions.get(msgId);
-                    if (sub == null || sub.format() == null) {
-                        buf.position(buf.position() + msgSize - 2);
-                        continue;
-                    }
-                    parseDataMessage(sub);
-                }
-                case LOGGING -> {
-                    char level = (char) buf.get();
-                    long timestamp = buf.getLong();
-                    byte[] msgBytes = new byte[msgSize - 9];
-                    buf.get(msgBytes);
-                    String message = new String(msgBytes, StandardCharsets.US_ASCII).trim();
-                    logs.add(new ULogFile.MessageLog(level, timestamp, message));
-                }
-                case DROPOUT -> {
-                    int duration = Short.toUnsignedInt(buf.getShort());
-                    dropouts.add(new ULogFile.Dropout(duration));
-                    int rem = msgSize - 2;
-                    if (rem > 0) buf.position(buf.position() + rem);
-                }
-                case PARAMETER -> {
-                    int start = buf.position();
-                    int keyLen = Byte.toUnsignedInt(buf.get());
-                    byte[] keyBytes = new byte[keyLen];
-                    buf.get(keyBytes);
-                    String rawKey = new String(keyBytes, StandardCharsets.US_ASCII);
-                    int spacePos = rawKey.indexOf(' ');
-                    if (spacePos < 0) {
-                        buf.position(start + msgSize);
-                        continue;
-                    }
-                    String typeStr = rawKey.substring(0, spacePos);
-                    String paramName = rawKey.substring(spacePos + 1);
-
-                    ULogFile.Parameter newParam;
-                    if (typeStr.equals("int32_t")) {
-                        int val = buf.getInt();
-                        newParam = new ULogFile.Parameter(paramName, FieldType.INT32, val, 0f);
-                    } else if (typeStr.equals("float")) {
-                        float val = buf.getFloat();
-                        newParam = new ULogFile.Parameter(paramName, FieldType.FLOAT, 0, val);
-                    } else {
-                        buf.position(start + msgSize);
-                        continue;
-                    }
-
-                    // Dedup: overwrite existing parameter with same name
-                    boolean found = false;
-                    for (int i = 0; i < parameters.size(); i++) {
-                        if (parameters.get(i).name().equals(paramName)) {
-                            parameters.set(i, newParam);
-                            found = true;
-                            break;
+                        if (multiId > 0) {
+                            messageNameWithMultiId.add(messageName);
                         }
                     }
-                    if (!found) {
-                        parameters.add(newParam);
+                    case REMOVE_LOGGED_MSG -> {
+                        int msgId = Short.toUnsignedInt(buf.getShort());
+                        subscriptions.remove(msgId);
                     }
+                    case DATA -> {
+                        int msgId = Short.toUnsignedInt(buf.getShort());
+                        Subscription sub = subscriptions.get(msgId);
+                        if (sub == null || sub.format() == null) {
+                            buf.position(msgEnd);
+                            continue;
+                        }
+                        parseDataMessage(sub);
+                    }
+                    case LOGGING -> {
+                        if (msgSize >= 9) {
+                            char level = (char) buf.get();
+                            long timestamp = buf.getLong();
+                            byte[] msgBytes = new byte[msgSize - 9];
+                            buf.get(msgBytes);
+                            String message = new String(msgBytes, StandardCharsets.US_ASCII).trim();
+                            logs.add(new ULogFile.MessageLog(level, timestamp, message));
+                        }
+                    }
+                    case DROPOUT -> {
+                        int duration = Short.toUnsignedInt(buf.getShort());
+                        dropouts.add(new ULogFile.Dropout(duration));
+                    }
+                    case PARAMETER -> {
+                        int start = buf.position();
+                        int keyLen = Byte.toUnsignedInt(buf.get());
+                        byte[] keyBytes = new byte[keyLen];
+                        buf.get(keyBytes);
+                        String rawKey = new String(keyBytes, StandardCharsets.US_ASCII);
+                        int spacePos = rawKey.indexOf(' ');
+                        if (spacePos < 0) {
+                            break;
+                        }
+                        String typeStr = rawKey.substring(0, spacePos);
+                        String paramName = rawKey.substring(spacePos + 1);
+
+                        ULogFile.Parameter newParam;
+                        if (typeStr.equals("int32_t")) {
+                            int val = buf.getInt();
+                            newParam = new ULogFile.Parameter(paramName, FieldType.INT32, val, 0f);
+                        } else if (typeStr.equals("float")) {
+                            float val = buf.getFloat();
+                            newParam = new ULogFile.Parameter(paramName, FieldType.FLOAT, 0, val);
+                        } else {
+                            break;
+                        }
+
+                        // Dedup: overwrite existing parameter with same name
+                        boolean found = false;
+                        for (int i = 0; i < parameters.size(); i++) {
+                            if (parameters.get(i).name().equals(paramName)) {
+                                parameters.set(i, newParam);
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            parameters.add(newParam);
+                        }
+                    }
+                    default -> { /* skip */ }
                 }
-                default -> buf.position(buf.position() + msgSize);
+            } catch (Exception e) {
+                // If any individual message fails to parse, skip it and continue
             }
+            // Always advance to the end of this message
+            buf.position(msgEnd);
         }
     }
 

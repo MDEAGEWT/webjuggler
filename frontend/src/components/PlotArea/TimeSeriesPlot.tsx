@@ -72,8 +72,15 @@ export default function TimeSeriesPlot({ panelId: _panelId, series }: Props) {
       width: el.clientWidth,
       height: el.clientHeight,
       cursor: {
+        // X cursor syncs across plots (vertical line on time axis)
+        // Y cursor only shows on the active (hovered) plot
+        y: false,
         sync: {
           key: 'webjuggler',
+          setSeries: false, // don't highlight series on synced plots
+        },
+        focus: {
+          prox: 30, // highlight nearest series within 30px on hovered plot
         },
       },
       hooks: {

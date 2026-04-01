@@ -18,8 +18,9 @@ export function deleteFile(id: string): Promise<void> {
   return apiFetch<void>(`/files/${id}`, { method: 'DELETE' })
 }
 
-export function topics(id: string): Promise<Topic[]> {
-  return apiFetch<Topic[]>(`/files/${id}/topics`)
+export async function topics(id: string): Promise<Topic[]> {
+  const res = await apiFetch<{ topics: Topic[] }>(`/files/${id}/topics`)
+  return res.topics
 }
 
 export function info(id: string): Promise<FileInfo> {
