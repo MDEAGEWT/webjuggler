@@ -16,6 +16,18 @@ export default function App() {
       // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
+      // Undo/Redo — works even without a focused panel
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        useLayoutStore.getState().undo()
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey) || (e.key === 'Z' && e.shiftKey))) {
+        e.preventDefault()
+        useLayoutStore.getState().redo()
+        return
+      }
+
       const { focusedPanelId, splitPanel, clearSeries } = useLayoutStore.getState()
       if (!focusedPanelId) return
 

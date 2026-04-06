@@ -54,22 +54,34 @@ function removePlot(node: LayoutNode, targetId: string): LayoutNode | null {
 interface LayoutState {
   root: LayoutNode
   focusedPanelId: string | null
+  undoStack: LayoutNode[]
+  redoStack: LayoutNode[]
   setFocusedPanel: (id: string) => void
   splitPanel: (id: string, direction: 'vertical' | 'horizontal') => void
   closePanel: (id: string) => void
   addSeries: (id: string, fields: string[]) => void
   removeSeries: (id: string, field: string) => void
   clearSeries: (id: string) => void
+  undo: () => void
+  redo: () => void
 }
+
+const pushUndo = (state: LayoutState) => ({
+  undoStack: [...state.undoStack.slice(-50), state.root],
+  redoStack: [] as LayoutNode[],
+})
 
 export const useLayoutStore = create<LayoutState>((set) => ({
   root: makePlotNode(),
   focusedPanelId: null,
+  undoStack: [],
+  redoStack: [],
 
   setFocusedPanel: (id) => set({ focusedPanelId: id }),
 
   splitPanel: (id, direction) =>
     set((state) => ({
+      ...pushUndo(state),
       root: findAndReplace(state.root, id, (existing) => ({
         type: 'split',
         direction,
@@ -83,11 +95,12 @@ export const useLayoutStore = create<LayoutState>((set) => ({
   closePanel: (id) =>
     set((state) => {
       const result = removePlot(state.root, id)
-      return { root: result ?? makePlotNode() }
+      return { ...pushUndo(state), root: result ?? makePlotNode() }
     }),
 
   addSeries: (id, fields) =>
     set((state) => ({
+      ...pushUndo(state),
       root: findAndUpdate(state.root, id, (node) => {
         const newSeries = [...new Set([...node.series, ...fields])]
         // Determine plot mode based on how fields are dropped:
@@ -109,6 +122,7 @@ export const useLayoutStore = create<LayoutState>((set) => ({
 
   removeSeries: (id, field) =>
     set((state) => ({
+      ...pushUndo(state),
       root: findAndUpdate(state.root, id, (node) => ({
         ...node,
         series: node.series.filter((s) => s !== field),
@@ -117,10 +131,33 @@ export const useLayoutStore = create<LayoutState>((set) => ({
 
   clearSeries: (id) =>
     set((state) => ({
+      ...pushUndo(state),
       root: findAndUpdate(state.root, id, (node) => ({
         ...node,
         series: [],
         plotMode: 'timeseries',
       })),
     })),
+
+  undo: () =>
+    set((state) => {
+      if (state.undoStack.length === 0) return state
+      const prev = state.undoStack[state.undoStack.length - 1]
+      return {
+        root: prev,
+        undoStack: state.undoStack.slice(0, -1),
+        redoStack: [...state.redoStack, state.root],
+      }
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state.redoStack.length === 0) return state
+      const next = state.redoStack[state.redoStack.length - 1]
+      return {
+        root: next,
+        redoStack: state.redoStack.slice(0, -1),
+        undoStack: [...state.undoStack, state.root],
+      }
+    }),
 }))
