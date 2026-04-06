@@ -95,6 +95,7 @@ frontend/src/
 - [x] **Layout save/restore** — persist plot layout + series assignments to localStorage
 - [ ] **Data transforms** — derivative, moving average, integral, scale, outlier removal. Applied per-series, computed client-side
 - [x] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all
+- [ ] **Multi-file timestamp merge** — when plotting series from different files on the same plot, merge timestamp arrays (no interpolation, null gaps). Currently uses first series' timestamps only, so other-file series show empty
 
 ### Important — Usability
 - [x] **Legend with interaction** — show series list per plot with color, name, visibility toggle (click to hide/show), right-click to remove
@@ -103,6 +104,12 @@ frontend/src/
 - [x] **Keyboard shortcuts** — V split vertical, H split horizontal, Delete remove series
 - [x] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired)
 - [x] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
+- [ ] **Edit Curves dialog** — PlotJuggler-style series editor: change color, rename, switch display mode. Accessible via right-click or legend interaction
+
+### Special visualization modes
+- [ ] **Heading compass view** — any single numeric field can be viewed as a compass. User toggles between graph↔compass via button on plot. Auto radian↔degree conversion. Works for any heading/yaw field, not PX4-specific
+- [ ] **3D Attitude view** — user assigns 4 fields as quaternion (w,x,y,z) → renders 3D orientation with RGB axes (R=X, G=Y, B=Z). Syncs with cursor time. Could also accept Euler angles (roll,pitch,yaw). Generic — works with any quaternion source
+- [ ] **Edit Curves dialog** — series editor: change color, switch display mode (graph/compass/attitude). Accessible via right-click or legend
 
 ### Nice-to-have
 - [ ] **Tabbed plot groups** — organize plots into named tabs instead of one giant split tree
