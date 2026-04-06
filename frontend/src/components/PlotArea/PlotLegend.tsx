@@ -3,12 +3,8 @@ import { PLOT_COLORS } from '../../constants'
 import { useFileStore } from '../../stores/useFileStore'
 import { useLayoutStore } from '../../stores/useLayoutStore'
 
-function hashColorIndex(path: string): number {
-  let hash = 0
-  for (let i = 0; i < path.length; i++) {
-    hash = (hash * 31 + path.charCodeAt(i)) | 0
-  }
-  return Math.abs(hash) % PLOT_COLORS.length
+function getSeriesColor(index: number): string {
+  return PLOT_COLORS[index % PLOT_COLORS.length]!
 }
 
 /** Extract a display label from a composite field path like "fileId:topic/field" */
@@ -67,9 +63,9 @@ export default function PlotLegend({
 
   return (
     <div className="plot-legend">
-      {series.map((field) => {
+      {series.map((field, idx) => {
         const hidden = hiddenSeries.has(field)
-        const color = colorOverrides[field] ?? PLOT_COLORS[hashColorIndex(field)]
+        const color = colorOverrides[field] ?? getSeriesColor(idx)
         return (
           <div
             key={field}

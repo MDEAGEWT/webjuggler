@@ -2,12 +2,8 @@ import { PLOT_COLORS } from '../constants'
 import { useLayoutStore } from '../stores/useLayoutStore'
 import { useFileStore } from '../stores/useFileStore'
 
-function hashColorIndex(path: string): number {
-  let hash = 0
-  for (let i = 0; i < path.length; i++) {
-    hash = (hash * 31 + path.charCodeAt(i)) | 0
-  }
-  return Math.abs(hash) % PLOT_COLORS.length
+function getSeriesColor(index: number): string {
+  return PLOT_COLORS[index % PLOT_COLORS.length]!
 }
 
 function seriesLabel(compositeField: string): string {
@@ -45,9 +41,9 @@ export default function EditCurvesDialog({ series, onClose }: Props) {
           <button onClick={onClose}>&times;</button>
         </div>
         <div className="dialog-body">
-          {series.map((field) => {
+          {series.map((field, idx) => {
             const currentColor =
-              colorOverrides[field] ?? PLOT_COLORS[hashColorIndex(field)]
+              colorOverrides[field] ?? getSeriesColor(idx)
             return (
               <div className="edit-curve-row" key={field}>
                 <div className="edit-curve-color-picker">

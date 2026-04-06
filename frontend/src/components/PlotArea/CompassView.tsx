@@ -65,7 +65,7 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
     // Colors from CSS vars
     const bgSecondary = getCSSVar('--bg-secondary')
     const borderColor = getCSSVar('--border')
-    const accent = getCSSVar('--accent')
+    const needleColor = '#e53935' // red needle
     const textPrimary = getCSSVar('--text-primary')
     const textSecondary = getCSSVar('--text-secondary')
 
@@ -165,7 +165,7 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
       ctx.lineTo(cx + Math.cos(baseAngle1) * baseLen, cy + Math.sin(baseAngle1) * baseLen)
       ctx.lineTo(cx + Math.cos(baseAngle2) * baseLen, cy + Math.sin(baseAngle2) * baseLen)
       ctx.closePath()
-      ctx.fillStyle = accent
+      ctx.fillStyle = needleColor
       ctx.fill()
 
       // Thin tail opposite
@@ -175,7 +175,7 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
       ctx.beginPath()
       ctx.moveTo(cx, cy)
       ctx.lineTo(tailX, tailY)
-      ctx.strokeStyle = accent
+      ctx.strokeStyle = needleColor
       ctx.lineWidth = 1.5
       ctx.globalAlpha = 0.5
       ctx.stroke()
@@ -184,12 +184,12 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
       // Center dot
       ctx.beginPath()
       ctx.arc(cx, cy, 4, 0, Math.PI * 2)
-      ctx.fillStyle = accent
+      ctx.fillStyle = needleColor
       ctx.fill()
 
       // Value text below compass
       ctx.font = 'bold 18px monospace'
-      ctx.fillStyle = accent
+      ctx.fillStyle = needleColor
       ctx.textAlign = 'center'
       ctx.textBaseline = 'top'
       ctx.fillText(`${normalized.toFixed(1)}\u00B0`, cx, cy + radius + 20)

@@ -33,12 +33,9 @@ interface Props {
   series: string[]
 }
 
-function hashColorIndex(path: string): number {
-  let hash = 0
-  for (let i = 0; i < path.length; i++) {
-    hash = (hash * 31 + path.charCodeAt(i)) | 0
-  }
-  return Math.abs(hash) % PLOT_COLORS.length
+/** Get color for a series by its index within the plot (not hash-based) */
+function getSeriesColor(index: number): string {
+  return PLOT_COLORS[index % PLOT_COLORS.length]!
 }
 
 export default function TimeSeriesPlot({ panelId, series }: Props) {
@@ -140,9 +137,9 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
 
     const seriesOpts: uPlot.Series[] = [
       { label: 'Time' },
-      ...availableSeries.map((s) => ({
+      ...availableSeries.map((s, i) => ({
         label: seriesLabel(s),
-        stroke: colorOverrides[s] ?? PLOT_COLORS[hashColorIndex(s)],
+        stroke: colorOverrides[s] ?? getSeriesColor(i),
         width: 1.5,
         show: !hiddenRef.current.has(s),
       })),
