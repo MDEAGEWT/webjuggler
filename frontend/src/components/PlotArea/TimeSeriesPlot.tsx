@@ -3,6 +3,7 @@ import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
+import { useZoomStore } from '../../stores/useZoomStore'
 import { PLOT_COLORS } from '../../constants'
 
 interface Props {
@@ -18,7 +19,7 @@ function hashColorIndex(path: string): number {
   return Math.abs(hash) % PLOT_COLORS.length
 }
 
-export default function TimeSeriesPlot({ panelId: _panelId, series }: Props) {
+export default function TimeSeriesPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const plotRef = useRef<uPlot | null>(null)
   const data = useDataStore((s) => s.data)
@@ -95,6 +96,17 @@ export default function TimeSeriesPlot({ panelId: _panelId, series }: Props) {
             }
           },
         ],
+        setScale: [
+          (u: uPlot, scaleKey: string) => {
+            if (scaleKey === 'x') {
+              const min = u.scales.x?.min
+              const max = u.scales.x?.max
+              if (min != null && max != null) {
+                useZoomStore.getState().setRange(min, max, panelId)
+              }
+            }
+          },
+        ],
       },
       series: seriesOpts,
       axes: [
@@ -146,6 +158,25 @@ export default function TimeSeriesPlot({ panelId: _panelId, series }: Props) {
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+
+  // Synchronized zoom: apply range changes from other plots
+  useEffect(() => {
+    const unsub = useZoomStore.subscribe((state) => {
+      const plot = plotRef.current
+      if (!plot) return
+      if (state.sourceId === panelId) return
+
+      if (state.xMin != null && state.xMax != null) {
+        plot.setScale('x', { min: state.xMin, max: state.xMax })
+      } else if (plot.data[0] && plot.data[0].length > 0) {
+        plot.setScale('x', {
+          min: plot.data[0][0]!,
+          max: plot.data[0][plot.data[0].length - 1]!,
+        })
+      }
+    })
+    return unsub
+  }, [panelId])
 
   return <div ref={containerRef} className="time-series-plot" />
 }
