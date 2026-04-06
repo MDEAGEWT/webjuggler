@@ -7,6 +7,7 @@ import TimeSeriesPlot from './TimeSeriesPlot'
 import XYPlot from './XYPlot'
 import ThreeDPlot from './ThreeDPlot'
 import CompassView from './CompassView'
+import AttitudeView from './AttitudeView'
 import ContextMenu from '../ContextMenu'
 
 interface Props {
@@ -22,6 +23,7 @@ export default function PlotPanel({ node }: Props) {
   const addSeries = useLayoutStore((s) => s.addSeries)
   const setFocusedPanel = useLayoutStore((s) => s.setFocusedPanel)
   const setDisplayMode = useLayoutStore((s) => s.setDisplayMode)
+  const setPlotMode = useLayoutStore((s) => s.setPlotMode)
   const isFocused = useLayoutStore((s) => s.focusedPanelId === node.id)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
@@ -75,8 +77,29 @@ export default function PlotPanel({ node }: Props) {
           {node.displayMode === 'compass' ? '\u{1F4C8}' : '\u{1F9ED}'}
         </button>
       )}
+      {node.series.length >= 4 && node.plotMode !== 'attitude' && (
+        <button
+          className="plot-mode-btn"
+          style={{ left: node.series.length === 1 ? 36 : 4 }}
+          title="Attitude view (quaternion)"
+          onClick={() => setPlotMode(node.id, 'attitude')}
+        >
+          Q
+        </button>
+      )}
+      {node.plotMode === 'attitude' && node.series.length >= 4 && (
+        <button
+          className="plot-mode-btn"
+          title="Back to time series"
+          onClick={() => setPlotMode(node.id, 'timeseries')}
+        >
+          T
+        </button>
+      )}
       {node.series.length === 0 ? (
         <EmptyPlot />
+      ) : node.plotMode === 'attitude' && node.series.length >= 4 ? (
+        <AttitudeView panelId={node.id} series={node.series} />
       ) : node.plotMode === 'xy' && node.series.length >= 2 ? (
         <XYPlot panelId={node.id} series={node.series} />
       ) : node.plotMode === '3d' && node.series.length >= 3 ? (

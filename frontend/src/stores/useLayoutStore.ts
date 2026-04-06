@@ -72,6 +72,7 @@ interface LayoutState {
   addSeries: (id: string, fields: string[]) => void
   removeSeries: (id: string, field: string) => void
   clearSeries: (id: string) => void
+  setPlotMode: (id: string, mode: 'timeseries' | 'xy' | '3d' | 'attitude') => void
   setDisplayMode: (id: string, mode: 'graph' | 'compass') => void
   undo: () => void
   redo: () => void
@@ -121,7 +122,9 @@ export const useLayoutStore = create<LayoutState>()(
             // - Multi-drop of 3+ fields on an empty panel → '3d'
             // - Single field drops keep/set 'timeseries'
             let plotMode = node.plotMode
-            if (node.series.length === 0 && fields.length === 2) {
+            if (node.series.length === 0 && fields.length === 4) {
+              plotMode = 'attitude'
+            } else if (node.series.length === 0 && fields.length === 2) {
               plotMode = 'xy'
             } else if (node.series.length === 0 && fields.length >= 3) {
               plotMode = '3d'
@@ -149,6 +152,15 @@ export const useLayoutStore = create<LayoutState>()(
             ...node,
             series: [],
             plotMode: 'timeseries',
+          })),
+        })),
+
+      setPlotMode: (id, mode) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: findAndUpdate(state.root, id, (node) => ({
+            ...node,
+            plotMode: mode,
           })),
         })),
 
