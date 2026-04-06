@@ -25,8 +25,8 @@ frontend/dist/
 # Agents
 .agents/
 
-# Reference repos
-ref/
+# Reference repos (PlotJuggler is a submodule, don't ignore)
+# ref/
 
 # Test uploads
 backend/test-uploads/

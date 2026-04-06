@@ -87,9 +87,39 @@ frontend/src/
 /reload-plugins
 ```
 
-## Roadmap
+## Feature Backlog (vs PlotJuggler)
 
+### Critical — Core UX gaps
+- [ ] **Multi-file loading** — load multiple ulg files simultaneously for comparison. Currently single file only (useFileStore.currentFileId). Need: multi-file store, per-file topic namespace, merged sidebar tree
+- [ ] **Undo/Redo** — Ctrl+Z/Y for layout changes (split, close, clear series). Zustand middleware or state snapshot stack
+- [ ] **Layout save/restore** — persist plot layout + series assignments to localStorage (or server). Survive page refresh
+- [ ] **Data transforms** — derivative, moving average, integral, scale, outlier removal. Applied per-series, computed client-side
+- [ ] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all. PlotJuggler core UX
+
+### Important — Usability
+- [ ] **Legend with interaction** — show series list per plot with color, name, visibility toggle (click to hide/show), right-click to remove
+- [ ] **Cursor value display** — show exact numeric values at cursor position on each plot (not just crosshair line)
+- [ ] **Playback controls** — timeline slider, play/pause button, playback speed. Animates cursor across time
+- [ ] **Keyboard shortcuts** — Ctrl+Z undo, Ctrl+Y redo, V split vertical, H split horizontal, Esc close menu, Delete remove series
+- [ ] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired). Currently errors only appear in browser console
+- [ ] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
+
+### Nice-to-have
+- [ ] **Tabbed plot groups** — organize plots into named tabs instead of one giant split tree
+- [ ] **Plot customization** — line width, grid toggle, axis labels, dot mode vs line mode
+- [ ] **Recent files menu** — quick access to previously opened files
+- [ ] **Time offset controls** — remove time offset, show relative time from arbitrary point
+- [ ] **Fullscreen mode** — F11 or button to maximize plot area
+- [ ] **Help/cheatsheet dialog** — show available shortcuts and features
+- [ ] **Per-field data point count** — show count at field level in sidebar, not just topic level
+
+### Deferred — Phase 3+
 - [ ] ROS2 db3 file support (SQLite JDBC + CDR deserialization)
 - [ ] Server directory browsing (NAS mount)
-- [ ] Layout state persistence (localStorage)
-- [ ] Frontend unit tests
+- [ ] Live data streaming (ROS2 topics, UDP, WebSocket)
+
+### Not planned
+- Data export (CSV/image)
+- CSV file import
+- Plugin/extension architecture
+- Lua scripting (PlotJuggler feature)
