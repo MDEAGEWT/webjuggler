@@ -59,7 +59,16 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
   const normalizedPositionsRef = useRef<Float32Array | null>(null)
   const timestampsRef = useRef<Float64Array | null>(null)
   const data = useDataStore((s) => s.data)
+  const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
+
+  // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
+  useEffect(() => {
+    const missing = series.filter((s) => !useDataStore.getState().data[s])
+    if (missing.length > 0) {
+      fetchFields(missing)
+    }
+  }, [series, fetchFields])
 
   // Build scene once when data changes
   useEffect(() => {

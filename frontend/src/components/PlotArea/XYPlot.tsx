@@ -12,8 +12,17 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const data = useDataStore((s) => s.data)
+  const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const setCursor = useCursorStore((s) => s.setCursor)
+
+  // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
+  useEffect(() => {
+    const missing = series.filter((s) => !useDataStore.getState().data[s])
+    if (missing.length > 0) {
+      fetchFields(missing)
+    }
+  }, [series, fetchFields])
 
   const draw = useCallback(() => {
     const el = containerRef.current

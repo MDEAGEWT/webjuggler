@@ -44,8 +44,17 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const plotRef = useRef<uPlot | null>(null)
   const data = useDataStore((s) => s.data)
+  const fetchFields = useDataStore((s) => s.fetchFields)
   const setCursor = useCursorStore((s) => s.setCursor)
   const removeSeries = useLayoutStore((s) => s.removeSeries)
+
+  // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
+  useEffect(() => {
+    const missing = series.filter((s) => !useDataStore.getState().data[s])
+    if (missing.length > 0) {
+      fetchFields(missing)
+    }
+  }, [series, fetchFields])
 
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
   const [cursorValues, setCursorValues] = useState<Record<string, number | null>>({})
