@@ -2,10 +2,12 @@ import { useEffect } from 'react'
 import { useAuthStore } from './stores/useAuthStore'
 import { useLayoutStore } from './stores/useLayoutStore'
 import { useThemeStore } from './stores/useThemeStore'
+import { usePlaybackStore } from './stores/usePlaybackStore'
 import LoginPage from './components/LoginPage'
 import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar/Sidebar'
 import SplitLayout from './components/PlotArea/SplitLayout'
+import PlaybackBar from './components/PlaybackBar'
 import ToastContainer from './components/ToastContainer'
 
 export default function App() {
@@ -21,6 +23,13 @@ export default function App() {
     const handler = (e: KeyboardEvent) => {
       // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+
+      // Space = toggle playback
+      if (e.key === ' ') {
+        e.preventDefault()
+        usePlaybackStore.getState().togglePlay()
+        return
+      }
 
       // Undo/Redo — works even without a focused panel
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -64,6 +73,7 @@ export default function App() {
           <SplitLayout node={root} />
         </div>
       </div>
+      <PlaybackBar />
       <ToastContainer />
     </div>
   )
