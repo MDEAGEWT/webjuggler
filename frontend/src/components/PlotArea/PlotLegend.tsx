@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { PLOT_COLORS } from '../../constants'
+import { useFileStore } from '../../stores/useFileStore'
 
 function hashColorIndex(path: string): number {
   let hash = 0
@@ -9,8 +10,24 @@ function hashColorIndex(path: string): number {
   return Math.abs(hash) % PLOT_COLORS.length
 }
 
-function shortName(field: string): string {
-  return field.split('/').slice(-1)[0] ?? field
+/** Extract a display label from a composite field path like "fileId:topic/field" */
+function displayName(compositeField: string): string {
+  const files = useFileStore.getState().files
+  const colonIdx = compositeField.indexOf(':')
+  if (colonIdx === -1) {
+    // Legacy path without fileId prefix
+    return compositeField.split('/').slice(-1)[0] ?? compositeField
+  }
+  const fileId = compositeField.substring(0, colonIdx)
+  const fieldPath = compositeField.substring(colonIdx + 1)
+  const shortField = fieldPath.split('/').slice(-1)[0] ?? fieldPath
+
+  // If only one file loaded, no need for prefix
+  if (files.length <= 1) return shortField
+
+  const file = files.find((f) => f.fileId === fileId)
+  const prefix = file ? file.shortName : fileId.substring(0, 8)
+  return `[${prefix}] ${shortField}`
 }
 
 function formatValue(v: number | null | undefined): string {
@@ -63,7 +80,7 @@ export default function PlotLegend({
               className="legend-color"
               style={{ background: color }}
             />
-            <span className="legend-name">{shortName(field)}</span>
+            <span className="legend-name">{displayName(field)}</span>
             <span className="legend-value">
               {formatValue(cursorValues[field])}
             </span>

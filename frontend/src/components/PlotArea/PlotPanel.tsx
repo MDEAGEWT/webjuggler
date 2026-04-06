@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import type { PlotNode } from '../../types'
 import { useLayoutStore } from '../../stores/useLayoutStore'
 import { useDataStore } from '../../stores/useDataStore'
-import { useFileStore } from '../../stores/useFileStore'
 import EmptyPlot from './EmptyPlot'
 import TimeSeriesPlot from './TimeSeriesPlot'
 import XYPlot from './XYPlot'
@@ -23,7 +22,6 @@ export default function PlotPanel({ node }: Props) {
   const setFocusedPanel = useLayoutStore((s) => s.setFocusedPanel)
   const isFocused = useLayoutStore((s) => s.focusedPanelId === node.id)
   const fetchFields = useDataStore((s) => s.fetchFields)
-  const fileId = useFileStore((s) => s.currentFileId)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
 
   const handleClick = useCallback(() => {
@@ -45,14 +43,13 @@ export default function PlotPanel({ node }: Props) {
       try {
         const fields = JSON.parse(raw) as string[]
         addSeries(node.id, fields)
-        if (fileId) {
-          fetchFields(fileId, fields)
-        }
+        // Fields now contain fileId prefix, fetchFields parses it
+        fetchFields(fields)
       } catch {
         // ignore malformed data
       }
     },
-    [addSeries, fetchFields, fileId, node.id],
+    [addSeries, fetchFields, node.id],
   )
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {

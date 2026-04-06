@@ -1,11 +1,29 @@
 import { useState } from 'react'
 import { useFileStore } from '../../stores/useFileStore'
+import { useDataStore } from '../../stores/useDataStore'
 import TopicTree from './TopicTree'
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [filter, setFilter] = useState('')
-  const topics = useFileStore((s) => s.topics)
+  const files = useFileStore((s) => s.files)
+  const removeFile = useFileStore((s) => s.removeFile)
+  const clearFileData = useDataStore((s) => s.clearFileData)
+  const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set())
+
+  function toggleFileCollapse(fileId: string) {
+    setCollapsedFiles((prev) => {
+      const next = new Set(prev)
+      if (next.has(fileId)) next.delete(fileId)
+      else next.add(fileId)
+      return next
+    })
+  }
+
+  function handleRemoveFile(fileId: string) {
+    removeFile(fileId)
+    clearFileData(fileId)
+  }
 
   if (collapsed) {
     return (
@@ -40,10 +58,44 @@ export default function Sidebar() {
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
       />
-      {topics.length === 0 ? (
+      {files.length === 0 ? (
         <div className="sidebar-empty">Upload a file to see topics</div>
       ) : (
-        <TopicTree topics={topics} filter={filter} />
+        files.map((file) => {
+          const isFileCollapsed = collapsedFiles.has(file.fileId)
+          return (
+            <div key={file.fileId} className="file-group">
+              <div
+                className="file-group-header"
+                onClick={() => toggleFileCollapse(file.fileId)}
+              >
+                <span className="topic-arrow">
+                  {isFileCollapsed ? '\u25B8' : '\u25BE'}
+                </span>
+                <span className="file-group-name" title={file.filename}>
+                  {file.filename}
+                </span>
+                <button
+                  className="file-group-remove"
+                  title="Remove file"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRemoveFile(file.fileId)
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
+              {!isFileCollapsed && (
+                <TopicTree
+                  topics={file.topics}
+                  fileId={file.fileId}
+                  filter={filter}
+                />
+              )}
+            </div>
+          )
+        })
       )}
     </div>
   )

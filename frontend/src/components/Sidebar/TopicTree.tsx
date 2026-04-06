@@ -4,10 +4,11 @@ import FieldItem from './FieldItem'
 
 interface Props {
   topics: Topic[]
+  fileId: string
   filter: string
 }
 
-export default function TopicTree({ topics, filter }: Props) {
+export default function TopicTree({ topics, fileId, filter }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set())
   const lowerFilter = filter.toLowerCase()
@@ -63,7 +64,8 @@ export default function TopicTree({ topics, filter }: Props) {
             {isExpanded && (
               <div className="topic-fields">
                 {topic.fields.map((field) => {
-                  const fullPath = `${topic.name}${field}`
+                  // Composite path: "fileId:topicName/fieldName"
+                  const fullPath = `${fileId}:${topic.name}${field}`
                   return (
                     <FieldItem
                       key={fullPath}

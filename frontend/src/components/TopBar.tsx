@@ -7,8 +7,8 @@ import { upload } from '../api/files'
 export default function TopBar() {
   const username = useAuthStore((s) => s.username)
   const logout = useAuthStore((s) => s.logout)
-  const currentFilename = useFileStore((s) => s.currentFilename)
-  const setFile = useFileStore((s) => s.setFile)
+  const files = useFileStore((s) => s.files)
+  const addFile = useFileStore((s) => s.addFile)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -16,7 +16,7 @@ export default function TopBar() {
     if (!file) return
     try {
       const info = await upload(file)
-      await setFile(info.fileId, info.filename)
+      await addFile(info.fileId, info.filename)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       useToastStore.getState().addToast(`Upload failed: ${msg}`, 'error')
@@ -42,8 +42,12 @@ export default function TopBar() {
           style={{ display: 'none' }}
           onChange={handleFileUpload}
         />
-        {currentFilename && (
-          <span className="topbar-filename">{currentFilename}</span>
+        {files.length > 0 && (
+          <span className="topbar-filename">
+            {files.length === 1
+              ? files[0]!.filename
+              : `${files.length} files loaded`}
+          </span>
         )}
       </div>
       <div className="topbar-right">
