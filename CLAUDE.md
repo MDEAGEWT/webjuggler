@@ -90,18 +90,18 @@ frontend/src/
 ## Feature Backlog (vs PlotJuggler)
 
 ### Critical — Core UX gaps
-- [ ] **Multi-file loading** — load multiple ulg files simultaneously for comparison. Currently single file only (useFileStore.currentFileId). Need: multi-file store, per-file topic namespace, merged sidebar tree
+- [x] **Multi-file loading** — load multiple ulg files simultaneously for comparison
 - [ ] **Undo/Redo** — Ctrl+Z/Y for layout changes (split, close, clear series). Zustand middleware or state snapshot stack
 - [ ] **Layout save/restore** — persist plot layout + series assignments to localStorage (or server). Survive page refresh
 - [ ] **Data transforms** — derivative, moving average, integral, scale, outlier removal. Applied per-series, computed client-side
-- [ ] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all. PlotJuggler core UX
+- [x] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all
 
 ### Important — Usability
-- [ ] **Legend with interaction** — show series list per plot with color, name, visibility toggle (click to hide/show), right-click to remove
-- [ ] **Cursor value display** — show exact numeric values at cursor position on each plot (not just crosshair line)
+- [x] **Legend with interaction** — show series list per plot with color, name, visibility toggle (click to hide/show), right-click to remove
+- [x] **Cursor value display** — show exact numeric values at cursor position on each plot
 - [ ] **Playback controls** — timeline slider, play/pause button, playback speed. Animates cursor across time
-- [ ] **Keyboard shortcuts** — Ctrl+Z undo, Ctrl+Y redo, V split vertical, H split horizontal, Esc close menu, Delete remove series
-- [ ] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired). Currently errors only appear in browser console
+- [x] **Keyboard shortcuts** — V split vertical, H split horizontal, Delete remove series
+- [x] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired)
 - [ ] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
 
 ### Nice-to-have
