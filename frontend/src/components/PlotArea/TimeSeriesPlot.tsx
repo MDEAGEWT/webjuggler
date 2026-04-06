@@ -48,6 +48,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
   const fetchFields = useDataStore((s) => s.fetchFields)
   const setCursor = useCursorStore((s) => s.setCursor)
   const removeSeries = useLayoutStore((s) => s.removeSeries)
+  const colorOverrides = useLayoutStore((s) => s.colorOverrides)
   const theme = useThemeStore((s) => s.theme)
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
@@ -141,7 +142,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
       { label: 'Time' },
       ...availableSeries.map((s) => ({
         label: seriesLabel(s),
-        stroke: PLOT_COLORS[hashColorIndex(s)],
+        stroke: colorOverrides[s] ?? PLOT_COLORS[hashColorIndex(s)],
         width: 1.5,
         show: !hiddenRef.current.has(s),
       })),
@@ -225,7 +226,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
       plot.destroy()
       plotRef.current = null
     }
-  }, [series, data, setCursor, theme])
+  }, [series, data, setCursor, theme, colorOverrides])
 
   // Handle resize
   useEffect(() => {

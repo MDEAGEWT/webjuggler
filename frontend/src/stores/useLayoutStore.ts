@@ -66,6 +66,7 @@ interface LayoutState {
   focusedPanelId: string | null
   undoStack: LayoutNode[]
   redoStack: LayoutNode[]
+  colorOverrides: Record<string, string>
   setFocusedPanel: (id: string) => void
   splitPanel: (id: string, direction: 'vertical' | 'horizontal') => void
   closePanel: (id: string) => void
@@ -74,6 +75,7 @@ interface LayoutState {
   clearSeries: (id: string) => void
   setPlotMode: (id: string, mode: 'timeseries' | 'xy' | '3d' | 'attitude') => void
   setDisplayMode: (id: string, mode: 'graph' | 'compass') => void
+  setColorOverride: (field: string, color: string) => void
   undo: () => void
   redo: () => void
 }
@@ -90,6 +92,7 @@ export const useLayoutStore = create<LayoutState>()(
       focusedPanelId: null,
       undoStack: [],
       redoStack: [],
+      colorOverrides: {},
 
       setFocusedPanel: (id) => set({ focusedPanelId: id }),
 
@@ -173,6 +176,11 @@ export const useLayoutStore = create<LayoutState>()(
           })),
         })),
 
+      setColorOverride: (field, color) =>
+        set((state) => ({
+          colorOverrides: { ...state.colorOverrides, [field]: color },
+        })),
+
       undo: () =>
         set((state) => {
           if (state.undoStack.length === 0) return state
@@ -197,7 +205,7 @@ export const useLayoutStore = create<LayoutState>()(
     }),
     {
       name: 'webjuggler-layout',
-      partialize: (state) => ({ root: state.root }),
+      partialize: (state) => ({ root: state.root, colorOverrides: state.colorOverrides }),
       onRehydrateStorage: () => (state) => {
         // After restoring, bump nextId past the max existing plot ID
         if (state?.root) {

@@ -9,6 +9,7 @@ import ThreeDPlot from './ThreeDPlot'
 import CompassView from './CompassView'
 import AttitudeView from './AttitudeView'
 import ContextMenu from '../ContextMenu'
+import EditCurvesDialog from '../EditCurvesDialog'
 
 interface Props {
   node: PlotNode
@@ -27,6 +28,7 @@ export default function PlotPanel({ node }: Props) {
   const isFocused = useLayoutStore((s) => s.focusedPanelId === node.id)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
 
   const handleClick = useCallback(() => {
     setFocusedPanel(node.id)
@@ -115,6 +117,14 @@ export default function PlotPanel({ node }: Props) {
           x={menuPos.x}
           y={menuPos.y}
           onClose={() => setMenuPos(null)}
+          onEditCurves={node.series.length > 0 ? () => setShowEditDialog(true) : undefined}
+        />
+      )}
+      {showEditDialog && (
+        <EditCurvesDialog
+          panelId={node.id}
+          series={node.series}
+          onClose={() => setShowEditDialog(false)}
         />
       )}
     </div>

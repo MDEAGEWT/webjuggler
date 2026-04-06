@@ -6,9 +6,10 @@ interface Props {
   x: number
   y: number
   onClose: () => void
+  onEditCurves?: () => void
 }
 
-export default function ContextMenu({ panelId, x, y, onClose }: Props) {
+export default function ContextMenu({ panelId, x, y, onClose, onEditCurves }: Props) {
   const splitPanel = useLayoutStore((s) => s.splitPanel)
   const clearSeries = useLayoutStore((s) => s.clearSeries)
   const closePanel = useLayoutStore((s) => s.closePanel)
@@ -55,6 +56,14 @@ export default function ContextMenu({ panelId, x, y, onClose }: Props) {
         Split Horizontal <kbd>H</kbd>
       </div>
       <div className="context-menu-separator" />
+      {onEditCurves && (
+        <div
+          className="context-menu-item"
+          onClick={() => handle(() => onEditCurves())}
+        >
+          Edit Curves...
+        </div>
+      )}
       <div
         className="context-menu-item"
         onClick={() => handle(() => clearSeries(panelId))}

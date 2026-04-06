@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { PLOT_COLORS } from '../../constants'
 import { useFileStore } from '../../stores/useFileStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
 
 function hashColorIndex(path: string): number {
   let hash = 0
@@ -52,6 +53,7 @@ export default function PlotLegend({
   onToggleVisibility,
   onRemoveSeries,
 }: PlotLegendProps) {
+  const colorOverrides = useLayoutStore((s) => s.colorOverrides)
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, field: string) => {
       e.preventDefault()
@@ -67,7 +69,7 @@ export default function PlotLegend({
     <div className="plot-legend">
       {series.map((field) => {
         const hidden = hiddenSeries.has(field)
-        const color = PLOT_COLORS[hashColorIndex(field)]
+        const color = colorOverrides[field] ?? PLOT_COLORS[hashColorIndex(field)]
         return (
           <div
             key={field}
