@@ -35,4 +35,5 @@ export interface PlotNode {
   id: string
   series: string[]
   plotMode: 'timeseries' | 'xy' | '3d'
+  displayMode?: 'graph' | 'compass'
 }

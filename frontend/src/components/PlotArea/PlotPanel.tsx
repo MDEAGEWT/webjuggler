@@ -6,6 +6,7 @@ import EmptyPlot from './EmptyPlot'
 import TimeSeriesPlot from './TimeSeriesPlot'
 import XYPlot from './XYPlot'
 import ThreeDPlot from './ThreeDPlot'
+import CompassView from './CompassView'
 import ContextMenu from '../ContextMenu'
 
 interface Props {
@@ -20,6 +21,7 @@ interface MenuPos {
 export default function PlotPanel({ node }: Props) {
   const addSeries = useLayoutStore((s) => s.addSeries)
   const setFocusedPanel = useLayoutStore((s) => s.setFocusedPanel)
+  const setDisplayMode = useLayoutStore((s) => s.setDisplayMode)
   const isFocused = useLayoutStore((s) => s.focusedPanelId === node.id)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
@@ -65,12 +67,22 @@ export default function PlotPanel({ node }: Props) {
       onDrop={handleDrop}
       onContextMenu={handleContextMenu}
     >
+      {node.series.length === 1 && node.plotMode === 'timeseries' && (
+        <button
+          className="plot-mode-btn"
+          onClick={() => setDisplayMode(node.id, node.displayMode === 'compass' ? 'graph' : 'compass')}
+        >
+          {node.displayMode === 'compass' ? '\u{1F4C8}' : '\u{1F9ED}'}
+        </button>
+      )}
       {node.series.length === 0 ? (
         <EmptyPlot />
       ) : node.plotMode === 'xy' && node.series.length >= 2 ? (
         <XYPlot panelId={node.id} series={node.series} />
       ) : node.plotMode === '3d' && node.series.length >= 3 ? (
         <ThreeDPlot panelId={node.id} series={node.series} />
+      ) : node.displayMode === 'compass' && node.series.length === 1 ? (
+        <CompassView panelId={node.id} series={node.series} />
       ) : (
         <TimeSeriesPlot panelId={node.id} series={node.series} />
       )}

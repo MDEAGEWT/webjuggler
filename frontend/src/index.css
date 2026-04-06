@@ -744,3 +744,32 @@ body {
   font-size: 11px;
   padding: 2px 4px;
 }
+
+/* ---- Compass View ---- */
+.plot-mode-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 14px;
+  z-index: 10;
+  opacity: 0.7;
+}
+.plot-mode-btn:hover {
+  opacity: 1;
+  background: var(--border);
+}
+
+.compass-view {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

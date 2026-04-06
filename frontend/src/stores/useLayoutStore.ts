@@ -72,6 +72,7 @@ interface LayoutState {
   addSeries: (id: string, fields: string[]) => void
   removeSeries: (id: string, field: string) => void
   clearSeries: (id: string) => void
+  setDisplayMode: (id: string, mode: 'graph' | 'compass') => void
   undo: () => void
   redo: () => void
 }
@@ -148,6 +149,15 @@ export const useLayoutStore = create<LayoutState>()(
             ...node,
             series: [],
             plotMode: 'timeseries',
+          })),
+        })),
+
+      setDisplayMode: (id, mode) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: findAndUpdate(state.root, id, (node) => ({
+            ...node,
+            displayMode: mode,
           })),
         })),
 
