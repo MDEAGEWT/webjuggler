@@ -102,7 +102,7 @@ frontend/src/
 - [ ] **Playback controls** — timeline slider, play/pause button, playback speed. Animates cursor across time
 - [x] **Keyboard shortcuts** — V split vertical, H split horizontal, Delete remove series
 - [x] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired)
-- [ ] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
+- [x] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
 
 ### Nice-to-have
 - [ ] **Tabbed plot groups** — organize plots into named tabs instead of one giant split tree

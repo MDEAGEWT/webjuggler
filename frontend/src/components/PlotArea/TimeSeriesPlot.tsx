@@ -6,6 +6,7 @@ import { useCursorStore } from '../../stores/useCursorStore'
 import { useZoomStore } from '../../stores/useZoomStore'
 import { useLayoutStore } from '../../stores/useLayoutStore'
 import { useFileStore } from '../../stores/useFileStore'
+import { useThemeStore } from '../../stores/useThemeStore'
 import { PLOT_COLORS } from '../../constants'
 import PlotLegend from './PlotLegend'
 
@@ -47,6 +48,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
   const fetchFields = useDataStore((s) => s.fetchFields)
   const setCursor = useCursorStore((s) => s.setCursor)
   const removeSeries = useLayoutStore((s) => s.removeSeries)
+  const theme = useThemeStore((s) => s.theme)
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -195,14 +197,14 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
       series: seriesOpts,
       axes: [
         {
-          stroke: '#666',
-          grid: { stroke: '#1a1a2e', width: 1 },
-          ticks: { stroke: '#333', width: 1 },
+          stroke: getComputedStyle(document.documentElement).getPropertyValue('--axis-text').trim(),
+          grid: { stroke: getComputedStyle(document.documentElement).getPropertyValue('--grid-line').trim(), width: 1 },
+          ticks: { stroke: getComputedStyle(document.documentElement).getPropertyValue('--grid-tick').trim(), width: 1 },
         },
         {
-          stroke: '#666',
-          grid: { stroke: '#1a1a2e', width: 1 },
-          ticks: { stroke: '#333', width: 1 },
+          stroke: getComputedStyle(document.documentElement).getPropertyValue('--axis-text').trim(),
+          grid: { stroke: getComputedStyle(document.documentElement).getPropertyValue('--grid-line').trim(), width: 1 },
+          ticks: { stroke: getComputedStyle(document.documentElement).getPropertyValue('--grid-tick').trim(), width: 1 },
         },
       ],
       scales: {
@@ -223,7 +225,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
       plot.destroy()
       plotRef.current = null
     }
-  }, [series, data, setCursor])
+  }, [series, data, setCursor, theme])
 
   // Handle resize
   useEffect(() => {

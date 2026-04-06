@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useFileStore } from '../stores/useFileStore'
 import { useToastStore } from '../stores/useToastStore'
+import { useThemeStore } from '../stores/useThemeStore'
 import { upload } from '../api/files'
 
 export default function TopBar() {
@@ -9,6 +10,8 @@ export default function TopBar() {
   const logout = useAuthStore((s) => s.logout)
   const files = useFileStore((s) => s.files)
   const addFile = useFileStore((s) => s.addFile)
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggleTheme)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -51,6 +54,9 @@ export default function TopBar() {
         )}
       </div>
       <div className="topbar-right">
+        <button className="topbar-btn" onClick={toggleTheme} title="Toggle theme">
+          {theme === 'dark' ? '\u2600' : '\u263E'}
+        </button>
         <span className="topbar-username">{username}</span>
         <button className="topbar-btn" onClick={logout}>
           Logout

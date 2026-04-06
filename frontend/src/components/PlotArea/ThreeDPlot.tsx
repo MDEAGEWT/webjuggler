@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
+import { useThemeStore } from '../../stores/useThemeStore'
 
 interface Props {
   panelId: string
@@ -61,6 +62,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
   const data = useDataStore((s) => s.data)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
+  const theme = useThemeStore((s) => s.theme)
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -98,9 +100,17 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
       cleanupRef.current = null
     }
 
+    // Read theme colors
+    const cs = getComputedStyle(document.documentElement)
+    const sceneBg = cs.getPropertyValue('--scene-bg').trim()
+    const accentColor = cs.getPropertyValue('--accent').trim()
+    const cursorColor = cs.getPropertyValue('--cursor-stroke').trim()
+    const gridMajor = cs.getPropertyValue('--grid-3d-major').trim()
+    const gridMinor = cs.getPropertyValue('--grid-3d-minor').trim()
+
     // Setup scene
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#12122a')
+    scene.background = new THREE.Color(sceneBg)
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -150,7 +160,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
 
     // Trajectory line
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: '#4fc3f7',
+      color: accentColor,
       opacity: 0.8,
       transparent: true,
     })
@@ -159,7 +169,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
 
     // Tiny points
     const material = new THREE.PointsMaterial({
-      color: '#4fc3f7',
+      color: accentColor,
       size: 0.02,
       sizeAttenuation: true,
     })
@@ -168,7 +178,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
 
     // Cursor sphere — follows synced timestamp
     const sphereGeom = new THREE.SphereGeometry(0.04, 16, 16)
-    const sphereMat = new THREE.MeshBasicMaterial({ color: '#ffffff' })
+    const sphereMat = new THREE.MeshBasicMaterial({ color: cursorColor })
     const cursorSphere = new THREE.Mesh(sphereGeom, sphereMat)
     cursorSphere.visible = false
     scene.add(cursorSphere)
@@ -189,7 +199,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
     createAxisLabel(scene, zLabel, new THREE.Vector3(-1.2, -1.2, 1.5), '#6666ff')
 
     // Grid
-    const gridHelper = new THREE.GridHelper(2, 10, '#1a1a3e', '#1a1a2e')
+    const gridHelper = new THREE.GridHelper(2, 10, gridMajor, gridMinor)
     gridHelper.position.y = -1
     scene.add(gridHelper)
 
@@ -240,7 +250,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
         cleanupRef.current = null
       }
     }
-  }, [series, data])
+  }, [series, data, theme])
 
   // Update cursor sphere position when synced timestamp changes
   useEffect(() => {

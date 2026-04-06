@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
+import { useThemeStore } from '../../stores/useThemeStore'
 import { PLOT_COLORS } from '../../constants'
 
 interface Props {
@@ -15,6 +16,7 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const setCursor = useCursorStore((s) => s.setCursor)
+  const theme = useThemeStore((s) => s.theme)
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -80,12 +82,20 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
     const toX = (v: number) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW
     const toY = (v: number) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH
 
+    // Read theme colors from CSS variables
+    const cs = getComputedStyle(document.documentElement)
+    const bgColor = cs.getPropertyValue('--bg-secondary').trim()
+    const gridColor = cs.getPropertyValue('--grid-line').trim()
+    const axisTextColor = cs.getPropertyValue('--axis-text').trim()
+    const axisLabelColor = cs.getPropertyValue('--axis-label').trim()
+    const cursorStroke = cs.getPropertyValue('--cursor-stroke').trim()
+
     // Clear
-    ctx.fillStyle = '#12122a'
+    ctx.fillStyle = bgColor
     ctx.fillRect(0, 0, w, h)
 
     // Grid
-    ctx.strokeStyle = '#1a1a2e'
+    ctx.strokeStyle = gridColor
     ctx.lineWidth = 1
     const gridCountX = 8, gridCountY = 6
     for (let i = 0; i <= gridCountX; i++) {
@@ -98,7 +108,7 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
     }
 
     // Axis labels
-    ctx.fillStyle = '#666'
+    ctx.fillStyle = axisTextColor
     ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif'
     ctx.textAlign = 'center'
     for (let i = 0; i <= gridCountX; i++) {
@@ -112,7 +122,7 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
     }
 
     // Axis names
-    ctx.fillStyle = '#888'
+    ctx.fillStyle = axisLabelColor
     ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif'
     ctx.textAlign = 'center'
     const xLabel = xField.split('/').slice(-1)[0] ?? xField
@@ -157,7 +167,7 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
         if (d < bestDist) { bestDist = d; bestIdx = i }
       }
       const cx = toX(xVals[bestIdx]!), cy = toY(yVals[bestIdx]!)
-      ctx.strokeStyle = '#fff'
+      ctx.strokeStyle = cursorStroke
       ctx.lineWidth = 2
       ctx.beginPath()
       ctx.arc(cx, cy, 5, 0, Math.PI * 2)
@@ -167,7 +177,7 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
       ctx.arc(cx, cy, 3, 0, Math.PI * 2)
       ctx.fill()
     }
-  }, [series, data, cursorTs])
+  }, [series, data, cursorTs, theme])
 
   // Draw on data/cursor change
   useEffect(() => { draw() }, [draw])

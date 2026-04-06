@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAuthStore } from './stores/useAuthStore'
 import { useLayoutStore } from './stores/useLayoutStore'
+import { useThemeStore } from './stores/useThemeStore'
 import LoginPage from './components/LoginPage'
 import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -10,6 +11,11 @@ import ToastContainer from './components/ToastContainer'
 export default function App() {
   const token = useAuthStore((s) => s.token)
   const root = useLayoutStore((s) => s.root)
+
+  // Apply persisted theme on mount
+  useEffect(() => {
+    document.documentElement.dataset.theme = useThemeStore.getState().theme
+  }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
