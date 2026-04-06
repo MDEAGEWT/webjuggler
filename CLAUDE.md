@@ -91,15 +91,15 @@ frontend/src/
 
 ### Critical — Core UX gaps
 - [x] **Multi-file loading** — load multiple ulg files simultaneously for comparison
-- [ ] **Undo/Redo** — Ctrl+Z/Y for layout changes (split, close, clear series). Zustand middleware or state snapshot stack
-- [ ] **Layout save/restore** — persist plot layout + series assignments to localStorage (or server). Survive page refresh
+- [x] **Undo/Redo** — Ctrl+Z/Y for layout changes (split, close, clear series)
+- [x] **Layout save/restore** — persist plot layout + series assignments to localStorage
 - [ ] **Data transforms** — derivative, moving average, integral, scale, outlier removal. Applied per-series, computed client-side
 - [x] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all
 
 ### Important — Usability
 - [x] **Legend with interaction** — show series list per plot with color, name, visibility toggle (click to hide/show), right-click to remove
 - [x] **Cursor value display** — show exact numeric values at cursor position on each plot
-- [ ] **Playback controls** — timeline slider, play/pause button, playback speed. Animates cursor across time
+- [x] **Playback controls** — timeline slider, play/pause button, playback speed (0.5x-10x)
 - [x] **Keyboard shortcuts** — V split vertical, H split horizontal, Delete remove series
 - [x] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired)
 - [x] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
