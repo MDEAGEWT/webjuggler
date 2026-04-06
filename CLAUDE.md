@@ -83,8 +83,9 @@ frontend/src/
 
 ```
 /plugin install superpowers@claude-plugins-official
+/plugin install playwright-cli@anthropic-agent-skills
+/reload-plugins
 ```
-Playwright CLI plugin is also installed for browser testing.
 
 ## Roadmap
 
