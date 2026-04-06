@@ -21,6 +21,8 @@ export const useFileStore = create<FileState>((set) => ({
       set({ topics: t })
     } catch (err) {
       console.error('Failed to fetch topics:', err)
+      const { useToastStore } = await import('./useToastStore')
+      useToastStore.getState().addToast('Failed to load topics', 'error')
     }
   },
 }))

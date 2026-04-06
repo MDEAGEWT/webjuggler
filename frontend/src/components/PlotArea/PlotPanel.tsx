@@ -20,9 +20,15 @@ interface MenuPos {
 
 export default function PlotPanel({ node }: Props) {
   const addSeries = useLayoutStore((s) => s.addSeries)
+  const setFocusedPanel = useLayoutStore((s) => s.setFocusedPanel)
+  const isFocused = useLayoutStore((s) => s.focusedPanelId === node.id)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const fileId = useFileStore((s) => s.currentFileId)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
+
+  const handleClick = useCallback(() => {
+    setFocusedPanel(node.id)
+  }, [setFocusedPanel, node.id])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (e.dataTransfer.types.includes('application/webjuggler-fields')) {
@@ -56,7 +62,8 @@ export default function PlotPanel({ node }: Props) {
 
   return (
     <div
-      className="plot-panel"
+      className={`plot-panel${isFocused ? ' plot-panel-focused' : ''}`}
+      onClick={handleClick}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onContextMenu={handleContextMenu}

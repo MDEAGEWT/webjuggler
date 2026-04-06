@@ -53,6 +53,8 @@ function removePlot(node: LayoutNode, targetId: string): LayoutNode | null {
 
 interface LayoutState {
   root: LayoutNode
+  focusedPanelId: string | null
+  setFocusedPanel: (id: string) => void
   splitPanel: (id: string, direction: 'vertical' | 'horizontal') => void
   closePanel: (id: string) => void
   addSeries: (id: string, fields: string[]) => void
@@ -62,6 +64,9 @@ interface LayoutState {
 
 export const useLayoutStore = create<LayoutState>((set) => ({
   root: makePlotNode(),
+  focusedPanelId: null,
+
+  setFocusedPanel: (id) => set({ focusedPanelId: id }),
 
   splitPanel: (id, direction) =>
     set((state) => ({

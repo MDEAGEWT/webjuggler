@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useFileStore } from '../stores/useFileStore'
+import { useToastStore } from '../stores/useToastStore'
 import { upload } from '../api/files'
 
 export default function TopBar() {
@@ -17,7 +18,8 @@ export default function TopBar() {
       const info = await upload(file)
       await setFile(info.fileId, info.filename)
     } catch (err) {
-      console.error('Upload failed:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      useToastStore.getState().addToast(`Upload failed: ${msg}`, 'error')
     }
     // Reset so same file can be re-uploaded
     if (fileInputRef.current) fileInputRef.current.value = ''

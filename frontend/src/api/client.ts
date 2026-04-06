@@ -32,6 +32,9 @@ export async function apiFetch<T>(
   if (res.status === 401) {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
+    // Lazy import to avoid circular dependency
+    const { useToastStore } = await import('../stores/useToastStore')
+    useToastStore.getState().addToast('Session expired, please login again', 'error')
     window.location.reload()
     throw new ApiError(401, 'Unauthorized')
   }

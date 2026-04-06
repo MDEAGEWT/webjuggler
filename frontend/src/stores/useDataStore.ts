@@ -23,6 +23,8 @@ export const useDataStore = create<DataState>((set, get) => ({
       }))
     } catch (err) {
       console.error('Failed to fetch field data:', err)
+      const { useToastStore } = await import('./useToastStore')
+      useToastStore.getState().addToast('Failed to fetch field data', 'error')
     }
   },
 }))
