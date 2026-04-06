@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useZoomStore } from '../../stores/useZoomStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
 import { PLOT_COLORS } from '../../constants'
+import PlotLegend from './PlotLegend'
 
 interface Props {
   panelId: string
@@ -24,6 +26,50 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
   const plotRef = useRef<uPlot | null>(null)
   const data = useDataStore((s) => s.data)
   const setCursor = useCursorStore((s) => s.setCursor)
+  const removeSeries = useLayoutStore((s) => s.removeSeries)
+
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set())
+  const [cursorValues, setCursorValues] = useState<Record<string, number | null>>({})
+
+  // Keep a ref for hiddenSeries so uPlot hooks can read current value
+  const hiddenRef = useRef(hiddenSeries)
+  hiddenRef.current = hiddenSeries
+
+  // Keep a ref for available series so the setCursor hook can map indices
+  const availableSeriesRef = useRef<string[]>([])
+
+  const handleToggleVisibility = useCallback((field: string) => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev)
+      if (next.has(field)) {
+        next.delete(field)
+      } else {
+        next.add(field)
+      }
+      return next
+    })
+  }, [])
+
+  const handleRemoveSeries = useCallback(
+    (field: string) => {
+      removeSeries(panelId, field)
+    },
+    [panelId, removeSeries],
+  )
+
+  // When hiddenSeries changes, update uPlot series visibility without full rebuild
+  useEffect(() => {
+    const plot = plotRef.current
+    if (!plot) return
+    const avail = availableSeriesRef.current
+    avail.forEach((field, i) => {
+      const seriesIdx = i + 1 // series[0] is time
+      const shouldShow = !hiddenSeries.has(field)
+      if (plot.series[seriesIdx] && plot.series[seriesIdx].show !== shouldShow) {
+        plot.setSeries(seriesIdx, { show: shouldShow })
+      }
+    })
+  }, [hiddenSeries])
 
   useEffect(() => {
     const el = containerRef.current
@@ -31,6 +77,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
 
     // Gather aligned data: find common timestamps from first series
     const availableSeries = series.filter((s) => data[s])
+    availableSeriesRef.current = availableSeries
     if (availableSeries.length === 0) return
 
     // Use first available series timestamps as x-axis
@@ -66,22 +113,22 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
         label: s.split('/').slice(-1)[0] ?? s,
         stroke: PLOT_COLORS[hashColorIndex(s)],
         width: 1.5,
+        show: !hiddenRef.current.has(s),
       })),
     ]
 
     const opts: uPlot.Options = {
       width: el.clientWidth,
       height: el.clientHeight,
+      legend: { show: false },
       cursor: {
-        // X cursor syncs across plots (vertical line on time axis)
-        // Y cursor only shows on the active (hovered) plot
         y: false,
         sync: {
           key: 'webjuggler',
-          setSeries: false, // don't highlight series on synced plots
+          setSeries: false,
         },
         focus: {
-          prox: 30, // highlight nearest series within 30px on hovered plot
+          prox: 30,
         },
       },
       hooks: {
@@ -93,6 +140,15 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
               if (ts != null) {
                 setCursor(ts)
               }
+              // Update cursor values for legend
+              const vals: Record<string, number | null> = {}
+              const avail = availableSeriesRef.current
+              avail.forEach((field, i) => {
+                const seriesData = u.data[i + 1]
+                const v = seriesData ? seriesData[idx] : null
+                vals[field] = v ?? null
+              })
+              setCursorValues(vals)
             }
           },
         ],
@@ -178,5 +234,17 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
     return unsub
   }, [panelId])
 
-  return <div ref={containerRef} className="time-series-plot" />
+  return (
+    <>
+      <div ref={containerRef} className="time-series-plot" />
+      <PlotLegend
+        panelId={panelId}
+        series={series}
+        cursorValues={cursorValues}
+        hiddenSeries={hiddenSeries}
+        onToggleVisibility={handleToggleVisibility}
+        onRemoveSeries={handleRemoveSeries}
+      />
+    </>
+  )
 }

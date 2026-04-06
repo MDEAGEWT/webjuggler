@@ -56,6 +56,7 @@ interface LayoutState {
   splitPanel: (id: string, direction: 'vertical' | 'horizontal') => void
   closePanel: (id: string) => void
   addSeries: (id: string, fields: string[]) => void
+  removeSeries: (id: string, field: string) => void
   clearSeries: (id: string) => void
 }
 
@@ -99,6 +100,14 @@ export const useLayoutStore = create<LayoutState>((set) => ({
         // If already timeseries and adding one at a time, stay timeseries
         return { ...node, series: newSeries, plotMode }
       }),
+    })),
+
+  removeSeries: (id, field) =>
+    set((state) => ({
+      root: findAndUpdate(state.root, id, (node) => ({
+        ...node,
+        series: node.series.filter((s) => s !== field),
+      })),
     })),
 
   clearSeries: (id) =>

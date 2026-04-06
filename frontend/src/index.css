@@ -289,19 +289,58 @@ body {
   min-height: 0;
 }
 
-/* uPlot overrides for dark theme */
-.time-series-plot .u-legend {
-  background: #1a1a2e;
+/* ---- Plot Legend (custom overlay) ---- */
+.plot-legend {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(10, 10, 20, 0.85);
   border: 1px solid #2a2a3e;
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 4px 0;
   font-size: 11px;
+  max-height: 50%;
+  overflow-y: auto;
+  z-index: 10;
+  min-width: 120px;
 }
-.time-series-plot .u-legend .u-series th {
-  color: #999;
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  user-select: none;
 }
-.time-series-plot .u-legend .u-series td {
-  color: #ccc;
+.legend-row:hover {
+  background: rgba(255,255,255,0.05);
+}
+.legend-row-hidden {
+  opacity: 0.35;
+}
+
+.legend-color {
+  width: 10px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  flex: 1;
+  color: #aaa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend-value {
+  color: #ddd;
+  font-family: monospace;
+  font-size: 10px;
+  min-width: 60px;
+  text-align: right;
 }
 
 /* uPlot overrides for XY plot dark theme */
