@@ -103,30 +103,31 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
     const el = containerRef.current
     if (!el) return
 
-    // Gather aligned data: find common timestamps from first series
+    // Gather available series
     const availableSeries = series.filter((s) => data[s])
     availableSeriesRef.current = availableSeries
     if (availableSeries.length === 0) return
 
-    // Use first available series timestamps as x-axis
-    const firstData = data[availableSeries[0]!]!
-    const timestamps = new Float64Array(firstData.timestamps)
+    // Merge all timestamps into a unified sorted array (no interpolation)
+    // Each series keeps its values only at its own timestamps, null elsewhere
+    const tsSet = new Set<number>()
+    for (const s of availableSeries) {
+      const fd = data[s]!
+      for (let i = 0; i < fd.timestamps.length; i++) {
+        tsSet.add(fd.timestamps[i]!)
+      }
+    }
+    const mergedTs = Array.from(tsSet).sort((a, b) => a - b)
 
-    // Build uPlot data: [timestamps, ...values]
+    // For each series, place values at matching timestamps using merge-join
     const plotData: uPlot.AlignedData = [
-      Array.from(timestamps),
+      mergedTs,
       ...availableSeries.map((s) => {
-        const fd = data[s]
-        if (!fd) return Array.from(new Float64Array(timestamps.length))
-        // If same length, use directly; otherwise fill with nulls
-        if (fd.timestamps.length === timestamps.length) {
-          return Array.from(fd.values)
-        }
-        // Attempt alignment by matching timestamps
-        const aligned = new Array<number | null>(timestamps.length).fill(null)
+        const fd = data[s]!
+        const aligned = new Array<number | null>(mergedTs.length).fill(null)
         let j = 0
-        for (let i = 0; i < timestamps.length && j < fd.timestamps.length; i++) {
-          if (timestamps[i] === fd.timestamps[j]) {
+        for (let i = 0; i < mergedTs.length && j < fd.timestamps.length; i++) {
+          if (mergedTs[i] === fd.timestamps[j]) {
             aligned[i] = fd.values[j]!
             j++
           }
