@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { LayoutNode, PlotNode } from '../types'
+import { nextGlobalColor } from '../constants'
 
 let nextId = 1
 function makePlotNode(): PlotNode {
@@ -77,6 +78,9 @@ interface LayoutState {
   setDisplayMode: (id: string, mode: 'graph' | 'compass') => void
   setColorOverride: (field: string, color: string) => void
   toggleAxisNegate: (id: string, axisIndex: number) => void
+  setLineStyle: (id: string, style: 'lines' | 'dots' | 'lines-dots') => void
+  setLineWidth: (id: string, width: number) => void
+  setAxisMapping: (id: string, mapping: [number, number, number]) => void
   undo: () => void
   redo: () => void
 }
@@ -117,8 +121,17 @@ export const useLayoutStore = create<LayoutState>()(
         }),
 
       addSeries: (id, fields) =>
-        set((state) => ({
+        set((state) => {
+          // Auto-assign global colors to new fields
+          const newColorOverrides = { ...state.colorOverrides }
+          for (const f of fields) {
+            if (!newColorOverrides[f]) {
+              newColorOverrides[f] = nextGlobalColor()
+            }
+          }
+          return {
           ...pushUndo(state),
+          colorOverrides: newColorOverrides,
           root: findAndUpdate(state.root, id, (node) => {
             const newSeries = [...new Set([...node.series, ...fields])]
             // Determine plot mode based on how fields are dropped:
@@ -138,7 +151,7 @@ export const useLayoutStore = create<LayoutState>()(
             // If already timeseries and adding one at a time, stay timeseries
             return { ...node, series: newSeries, plotMode }
           }),
-        })),
+        }}),
 
       removeSeries: (id, field) =>
         set((state) => ({
@@ -190,6 +203,33 @@ export const useLayoutStore = create<LayoutState>()(
             neg[axisIndex] = !neg[axisIndex]
             return { ...plot, axisNegate: neg }
           }),
+        })),
+
+      setLineStyle: (id, style) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: findAndUpdate(state.root, id, (node) => ({
+            ...node,
+            lineStyle: style,
+          })),
+        })),
+
+      setLineWidth: (id, width) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: findAndUpdate(state.root, id, (node) => ({
+            ...node,
+            lineWidth: width,
+          })),
+        })),
+
+      setAxisMapping: (id, mapping) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: findAndUpdate(state.root, id, (node) => ({
+            ...node,
+            axisMapping: mapping,
+          })),
         })),
 
       undo: () =>

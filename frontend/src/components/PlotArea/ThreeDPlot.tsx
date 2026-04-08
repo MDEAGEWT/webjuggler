@@ -9,6 +9,7 @@ import AxisControls from './AxisControls'
 import type { LayoutNode, PlotNode } from '../../types'
 
 const DEFAULT_NEGATE = [false, false, false] as boolean[]
+const DEFAULT_MAPPING = [0, 1, 2] as number[]
 
 function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
   if (node.type === 'plot') return node.id === id ? node : null
@@ -76,6 +77,10 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     const plot = findPlotNode(s.root, panelId)
     return plot?.axisNegate ?? DEFAULT_NEGATE
   })
+  const axisMapping = useLayoutStore((s) => {
+    const plot = findPlotNode(s.root, panelId)
+    return plot?.axisMapping ?? DEFAULT_MAPPING
+  })
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -90,9 +95,10 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     const el = containerRef.current
     if (!el) return
 
-    const xField = series[0]
-    const yField = series[1]
-    const zField = series[2]
+    const mapping = axisMapping
+    const xField = series[mapping[0]!]
+    const yField = series[mapping[1]!]
+    const zField = series[mapping[2]!]
     if (!xField || !yField || !zField) return
 
     const xData = data[xField]
@@ -271,7 +277,7 @@ export default function ThreeDPlot({ panelId, series }: Props) {
         cleanupRef.current = null
       }
     }
-  }, [series, data, theme, axisNegate])
+  }, [series, data, theme, axisNegate, axisMapping])
 
   // Update cursor sphere position when synced timestamp changes
   useEffect(() => {
@@ -301,9 +307,10 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     sphere.visible = true
   }, [cursorTs])
 
-  const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
-  const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
-  const zLabel = series[2]?.split('/').slice(-1)[0] ?? 'Z'
+  const mapping = axisMapping
+  const xLabel = series[mapping[0]!]?.split('/').slice(-1)[0] ?? 'X'
+  const yLabel = series[mapping[1]!]?.split('/').slice(-1)[0] ?? 'Y'
+  const zLabel = series[mapping[2]!]?.split('/').slice(-1)[0] ?? 'Z'
 
   return (
     <div className="three-d-plot" style={{ position: 'relative', overflow: 'hidden' }}>

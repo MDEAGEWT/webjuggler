@@ -2,22 +2,30 @@
 
 Web-based time-series data viewer inspired by [PlotJuggler](https://github.com/facontidavide/PlotJuggler). Built with Spring Boot 3 + React/TypeScript.
 
+![WebJuggler Screenshot](docs/images/screenshot-main.png)
+
 ## Features
 
-- **ULog file parsing** — PX4 flight log viewer (Java parser, no external dependencies)
+- **ULog file parsing** — PX4 flight log viewer (Java parser, all 13 message types)
 - **Full-resolution data** — no downsampling, exact cursor values
-- **Recursive split layout** — right-click to split vertically/horizontally, drag borders to resize
-- **Drag & drop plotting** — drag fields from topic tree to plot panels
-  - 1 field → Time-series plot (uPlot)
-  - 2 fields → X-Y scatter/trajectory plot (Canvas)
-  - 3 fields → 3D scatter plot (Three.js, with orbit controls)
-- **Cursor sync** — hover on one plot, all plots follow
-- **Simple auth** — JWT-based login/register for team access
-- **File management** — upload files or browse server directories
-
-## Screenshots
-
-<!-- TODO: Add screenshots -->
+- **Multi-file comparison** — load multiple files simultaneously, per-file topic namespacing
+- **Recursive split layout** — right-click to split V/H, drag borders to resize
+- **Drag & drop plotting**
+  - 1 field → Time-series (uPlot)
+  - 2 fields → X-Y scatter/trajectory (Canvas)
+  - 3 fields → 3D scatter (Three.js)
+  - 4 fields → Attitude quaternion view (Three.js)
+- **Special views** — heading compass (multi-needle, auto rad/deg), 3D attitude (multi-quaternion comparison)
+- **Cursor system** — 3 modes: OFF (playback only), Point (nearest data point), Time (move tracker)
+- **Cursor values overlay** — follows cursor line with intersection dots and series values
+- **Synchronized zoom/pan** — 2D drag zoom (X+Y), sync across all time-series plots
+- **Playback controls** — timeline slider, play/pause, speed (0.5x–10x)
+- **Edit Curves** — per-plot color, line style (Lines/Dots/Lines+Dots), line width
+- **3D axis config** — swap/remap axes, negate toggle, PX4 NED mapping
+- **Undo/Redo** — Ctrl+Z/Y for all layout changes
+- **Layout persistence** — survives page refresh (localStorage)
+- **Dark/Light mode** — CSS variable theming
+- **Simple auth** — JWT login/register for team access
 
 ## Quick Start
 
@@ -118,12 +126,12 @@ webjuggler:
 
 ## Roadmap
 
-- [x] Phase 1 — ULog viewer MVP
-- [x] Phase 2 — X-Y plot, 3D scatter
-- [ ] Phase 3 — ROS2 db3 file support
-- [ ] Phase 3 — NAS/server directory browsing
-- [ ] Layout state persistence (localStorage)
-- [ ] File sharing between users
+- [x] ULog viewer with time-series, X-Y, 3D, attitude, compass
+- [x] Multi-file comparison, cursor sync, playback controls
+- [x] Edit Curves, 3D axis config, undo/redo, layout persistence
+- [ ] ROS2 db3 file support
+- [ ] Server directory browsing (NAS)
+- [ ] Data transforms (derivative, moving average)
 
 ## License
 

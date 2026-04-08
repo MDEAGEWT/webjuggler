@@ -1,6 +1,7 @@
 import { PLOT_COLORS } from '../constants'
 import { useLayoutStore } from '../stores/useLayoutStore'
 import { useFileStore } from '../stores/useFileStore'
+import type { LayoutNode, PlotNode } from '../types'
 
 function getSeriesColor(index: number): string {
   return PLOT_COLORS[index % PLOT_COLORS.length]!
@@ -23,15 +24,35 @@ function seriesLabel(compositeField: string): string {
   return `[${prefix}] ${shortField}`
 }
 
+function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
+  if (node.type === 'plot') return node.id === id ? node : null
+  return findPlotNode(node.children[0], id) ?? findPlotNode(node.children[1], id)
+}
+
 interface Props {
   panelId: string
   series: string[]
   onClose: () => void
 }
 
-export default function EditCurvesDialog({ series, onClose }: Props) {
+const LINE_STYLE_OPTIONS: { value: 'lines' | 'dots' | 'lines-dots'; label: string }[] = [
+  { value: 'lines', label: 'Lines' },
+  { value: 'dots', label: 'Dots' },
+  { value: 'lines-dots', label: 'Lines and Dots' },
+]
+
+const LINE_WIDTH_PRESETS = [1.0, 1.5, 2.0, 3.0]
+
+export default function EditCurvesDialog({ panelId, series, onClose }: Props) {
   const colorOverrides = useLayoutStore((s) => s.colorOverrides)
   const setColorOverride = useLayoutStore((s) => s.setColorOverride)
+  const setLineStyle = useLayoutStore((s) => s.setLineStyle)
+  const setLineWidth = useLayoutStore((s) => s.setLineWidth)
+
+  const root = useLayoutStore((s) => s.root)
+  const plotNode = findPlotNode(root, panelId)
+  const lineStyle = plotNode?.lineStyle ?? 'lines'
+  const lineWidth = plotNode?.lineWidth ?? 1.5
 
   return (
     <div className="dialog-overlay" onClick={onClose}>
@@ -62,6 +83,38 @@ export default function EditCurvesDialog({ series, onClose }: Props) {
               </div>
             )
           })}
+
+          <div className="edit-curve-section">
+            <div className="edit-curve-section-label">Line Style</div>
+            <div className="edit-curve-radio-group">
+              {LINE_STYLE_OPTIONS.map((opt) => (
+                <label key={opt.value} className="edit-curve-radio">
+                  <input
+                    type="radio"
+                    name="lineStyle"
+                    checked={lineStyle === opt.value}
+                    onChange={() => setLineStyle(panelId, opt.value)}
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="edit-curve-section">
+            <div className="edit-curve-section-label">Line Width</div>
+            <div className="edit-curve-width-group">
+              {LINE_WIDTH_PRESETS.map((w) => (
+                <button
+                  key={w}
+                  className={`edit-curve-width-btn${lineWidth === w ? ' active' : ''}`}
+                  onClick={() => setLineWidth(panelId, w)}
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

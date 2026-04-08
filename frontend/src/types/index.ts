@@ -42,4 +42,7 @@ export interface PlotNode {
   plotMode: 'timeseries' | 'xy' | '3d' | 'attitude'
   displayMode?: 'graph' | 'compass'
   axisNegate?: boolean[]  // per-axis negate: [negX, negY, negZ]
+  lineStyle?: 'lines' | 'dots' | 'lines-dots'  // default: 'lines'
+  lineWidth?: number  // default: 1.5
+  axisMapping?: [number, number, number]  // indices into series array for X, Y, Z. Default [0,1,2]
 }

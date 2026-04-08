@@ -1,4 +1,3 @@
-import { PLOT_COLORS } from '../../constants'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useDataStore } from '../../stores/useDataStore'
 
@@ -8,14 +7,6 @@ interface Props {
   selected: boolean
   allSelected: string[]
   onSelect: (ctrlKey: boolean) => void
-}
-
-function hashColor(path: string): string {
-  let hash = 0
-  for (let i = 0; i < path.length; i++) {
-    hash = (hash * 31 + path.charCodeAt(i)) | 0
-  }
-  return PLOT_COLORS[Math.abs(hash) % PLOT_COLORS.length]!
 }
 
 /** Binary search for the index of the nearest timestamp */
@@ -60,8 +51,6 @@ export default function FieldItem({
     onSelect(e.ctrlKey || e.metaKey)
   }
 
-  const color = hashColor(fieldPath)
-
   let displayValue = ''
   if (cursorTs != null && fieldData && fieldData.timestamps.length > 0) {
     const idx = nearestIndex(fieldData.timestamps, cursorTs)
@@ -78,7 +67,6 @@ export default function FieldItem({
       onDragStart={handleDragStart}
       onClick={handleClick}
     >
-      <span className="field-color-chip" style={{ backgroundColor: color }} />
       <span className="field-name">{fieldName}</span>
       {displayValue && <span className="field-value">{displayValue}</span>}
     </div>

@@ -10,6 +10,15 @@ import { useThemeStore } from '../../stores/useThemeStore'
 import { useSettingsStore } from '../../stores/useSettingsStore'
 import { PLOT_COLORS } from '../../constants'
 import PlotLegend from './PlotLegend'
+import type { LayoutNode, PlotNode } from '../../types'
+
+const DEFAULT_LINE_STYLE = 'lines' as const
+const DEFAULT_LINE_WIDTH = 1.5
+
+function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
+  if (node.type === 'plot') return node.id === id ? node : null
+  return findPlotNode(node.children[0], id) ?? findPlotNode(node.children[1], id)
+}
 
 /** Extract a short display label from composite "fileId:topic/field" path */
 function seriesLabel(compositeField: string): string {
@@ -57,6 +66,14 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
   const setCursor = useCursorStore((s) => s.setCursor)
   const removeSeries = useLayoutStore((s) => s.removeSeries)
   const colorOverrides = useLayoutStore((s) => s.colorOverrides)
+  const lineStyle = useLayoutStore((s) => {
+    const plot = findPlotNode(s.root, panelId)
+    return plot?.lineStyle ?? DEFAULT_LINE_STYLE
+  })
+  const lineWidth = useLayoutStore((s) => {
+    const plot = findPlotNode(s.root, panelId)
+    return plot?.lineWidth ?? DEFAULT_LINE_WIDTH
+  })
   const theme = useThemeStore((s) => s.theme)
   const cursorMode = useSettingsStore((s) => s.cursorMode)
 
@@ -149,13 +166,28 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
 
     const seriesOpts: uPlot.Series[] = [
       { label: 'Time' },
-      ...availableSeries.map((s, i) => ({
-        label: seriesLabel(s),
-        stroke: colorOverrides[s] ?? getSeriesColor(i),
-        width: 1.5,
-        show: !hiddenRef.current.has(s),
-        spanGaps: true,  // connect points across null gaps (different sample rates)
-      })),
+      ...availableSeries.map((s, i) => {
+        const base: uPlot.Series = {
+          label: seriesLabel(s),
+          stroke: colorOverrides[s] ?? getSeriesColor(i),
+          show: !hiddenRef.current.has(s),
+          spanGaps: true,  // connect points across null gaps (different sample rates)
+        }
+
+        if (lineStyle === 'dots') {
+          base.width = 0
+          base.paths = () => null
+          base.points = { show: true, size: 3 }
+        } else if (lineStyle === 'lines-dots') {
+          base.width = lineWidth
+          base.points = { show: true, size: 3 }
+        } else {
+          // 'lines' (default)
+          base.width = lineWidth
+        }
+
+        return base
+      }),
     ]
 
     const opts: uPlot.Options = {
@@ -246,7 +278,7 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
       plot.destroy()
       plotRef.current = null
     }
-  }, [series, data, setCursor, theme, colorOverrides, cursorMode])
+  }, [series, data, setCursor, theme, colorOverrides, cursorMode, lineStyle, lineWidth])
 
   // Handle resize
   useEffect(() => {

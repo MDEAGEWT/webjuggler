@@ -10,6 +10,7 @@ import CompassView from './CompassView'
 import AttitudeView from './AttitudeView'
 import ContextMenu from '../ContextMenu'
 import EditCurvesDialog from '../EditCurvesDialog'
+import AxisConfigDialog from '../AxisConfigDialog'
 
 interface Props {
   node: PlotNode
@@ -29,6 +30,7 @@ export default function PlotPanel({ node }: Props) {
   const fetchFields = useDataStore((s) => s.fetchFields)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showAxisDialog, setShowAxisDialog] = useState(false)
 
   const handleClick = useCallback(() => {
     setFocusedPanel(node.id)
@@ -98,6 +100,16 @@ export default function PlotPanel({ node }: Props) {
           T
         </button>
       )}
+      {node.plotMode === '3d' && node.series.length >= 3 && (
+        <button
+          className="plot-mode-btn"
+          style={{ right: 4, left: 'auto' }}
+          title="3D Axis Config"
+          onClick={() => setShowAxisDialog(true)}
+        >
+          &#x2699;
+        </button>
+      )}
       {node.series.length === 0 ? (
         <EmptyPlot />
       ) : node.plotMode === 'attitude' && node.series.length >= 4 ? (
@@ -125,6 +137,13 @@ export default function PlotPanel({ node }: Props) {
           panelId={node.id}
           series={node.series}
           onClose={() => setShowEditDialog(false)}
+        />
+      )}
+      {showAxisDialog && (
+        <AxisConfigDialog
+          panelId={node.id}
+          series={node.series}
+          onClose={() => setShowAxisDialog(false)}
         />
       )}
     </div>

@@ -3,6 +3,7 @@ import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useSettingsStore } from '../../stores/useSettingsStore'
 import { PLOT_COLORS } from '../../constants'
 import AxisControls from './AxisControls'
 import type { LayoutNode, PlotNode } from '../../types'
@@ -207,8 +208,10 @@ export default function XYPlot({ panelId, series }: Props) {
     return () => obs.disconnect()
   }, [draw])
 
-  // Mouse interaction — update cursor on hover
+  // Mouse interaction — update cursor on hover (only in time mode)
+  const cursorMode = useSettingsStore((s) => s.cursorMode)
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (cursorMode !== 'time') return
     const el = containerRef.current
     if (!el) return
     const xField = series[0], yField = series[1]
@@ -250,7 +253,7 @@ export default function XYPlot({ panelId, series }: Props) {
     }
     const ts = xData.timestamps[bestIdx]
     if (ts != null) setCursor(ts)
-  }, [series, data, setCursor])
+  }, [series, data, setCursor, cursorMode])
 
   const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
   const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'

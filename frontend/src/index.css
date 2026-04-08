@@ -215,12 +215,15 @@ body {
 /* ---- Sidebar ---- */
 .sidebar {
   width: 240px;
+  min-width: 150px;
+  max-width: 500px;
   background: var(--bg-panel-alt);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: auto;
   flex-shrink: 0;
+  resize: horizontal;
 }
 
 .sidebar-collapsed {
@@ -1084,4 +1087,153 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ---- Edit Curves: Line Style & Width ---- */
+.edit-curve-section {
+  padding: 10px 0 4px;
+  margin-top: 4px;
+}
+
+.edit-curve-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.edit-curve-radio-group {
+  display: flex;
+  gap: 12px;
+}
+
+.edit-curve-radio {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.edit-curve-radio input[type="radio"] {
+  accent-color: var(--accent);
+  margin: 0;
+}
+
+.edit-curve-width-group {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-curve-width-btn {
+  background: var(--bg-btn);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: monospace;
+}
+.edit-curve-width-btn:hover {
+  background: var(--bg-btn-hover);
+}
+.edit-curve-width-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg-selected);
+}
+
+/* ---- 3D Axis Config Dialog ---- */
+.axis-config-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.axis-config-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 50px;
+}
+
+.axis-config-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 4px 8px;
+  font-size: 12px;
+  flex: 1;
+  outline: none;
+}
+.axis-config-select:focus {
+  border-color: var(--border-focus);
+}
+
+.axis-config-negate {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  min-width: 28px;
+  text-align: center;
+}
+.axis-config-negate:hover {
+  background: var(--border);
+}
+.axis-config-negate.axis-negated {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.axis-config-swaps {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.axis-config-swap-btn {
+  background: var(--bg-btn);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 11px;
+  flex: 1;
+}
+.axis-config-swap-btn:hover {
+  background: var(--bg-btn-hover);
+}
+
+.axis-config-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.axis-config-close-btn {
+  background: var(--bg-btn);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 5px 16px;
+  font-size: 12px;
+}
+.axis-config-close-btn:hover {
+  background: var(--bg-btn-hover);
 }

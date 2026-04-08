@@ -117,17 +117,21 @@ export default function PlaybackBar() {
   return (
     <div className="playback-bar">
       <button className="playback-btn" onClick={handleStepBack} title="Step back">
-        &#9664;&#9664;
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="6,0 0,6 6,12"/><polygon points="12,0 6,6 12,12"/></svg>
       </button>
       <button
         className="playback-btn"
         onClick={() => usePlaybackStore.getState().togglePlay()}
         title={isPlaying ? 'Pause' : 'Play'}
       >
-        {isPlaying ? '\u23F8' : '\u25B6'}
+        {isPlaying ? (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="3" height="10"/><rect x="7" y="1" width="3" height="10"/></svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="2,0 12,6 2,12"/></svg>
+        )}
       </button>
       <button className="playback-btn" onClick={handleStepForward} title="Step forward">
-        &#9654;&#9654;
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><polygon points="0,0 6,6 0,12"/><polygon points="6,0 12,6 6,12"/></svg>
       </button>
       <input
         type="range"
