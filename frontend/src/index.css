@@ -174,6 +174,44 @@ body {
   font-size: 12px;
 }
 
+/* ---- Right Sidebar ---- */
+.right-sidebar {
+  width: 32px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.right-sidebar-btn {
+  width: 26px;
+  height: 26px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+  color: var(--text-primary);
+  padding: 0;
+}
+.right-sidebar-btn:hover {
+  opacity: 0.8;
+}
+.right-sidebar-btn.active {
+  opacity: 1;
+  border-color: var(--accent);
+  background: var(--bg-hover, var(--bg-panel));
+}
+
 /* ---- Sidebar ---- */
 .sidebar {
   width: 240px;
@@ -298,6 +336,7 @@ body {
   padding: 5px 10px;
   cursor: pointer;
   user-select: none;
+  overflow: hidden;
 }
 .topic-header:hover {
   background: var(--bg-hover);
@@ -307,6 +346,7 @@ body {
   font-size: 10px;
   color: var(--text-dim);
   width: 12px;
+  flex-shrink: 0;
   text-align: center;
 }
 
@@ -314,6 +354,10 @@ body {
   flex: 1;
   font-size: 12px;
   color: var(--text-topic);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .topic-count {
@@ -359,6 +403,17 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.field-value {
+  font-family: monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 /* ---- Plot Area ---- */
@@ -427,6 +482,36 @@ body {
   min-height: 0;
 }
 
+/* ---- Axis Controls ---- */
+.axis-controls {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  display: flex;
+  gap: 3px;
+  z-index: 10;
+}
+
+.axis-ctrl-btn {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-family: monospace;
+  opacity: 0.7;
+}
+.axis-ctrl-btn:hover {
+  opacity: 1;
+  background: var(--border);
+}
+.axis-negated {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* ---- Plot Legend (custom overlay) ---- */
 .plot-legend {
   position: absolute;
@@ -438,9 +523,9 @@ body {
   padding: 4px 0;
   font-size: 11px;
   max-height: 50%;
+  max-width: 60%;
   overflow-y: auto;
   z-index: 10;
-  min-width: 120px;
 }
 
 .legend-row {
@@ -471,14 +556,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.legend-value {
-  color: var(--text-legend-value);
-  font-family: monospace;
-  font-size: 10px;
-  min-width: 60px;
-  text-align: right;
 }
 
 /* uPlot overrides for XY plot theme */
@@ -772,6 +849,128 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+/* ---- Shared visualization overlay (compass + attitude) ---- */
+.viz-overlay {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--legend-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-primary);
+  z-index: 10;
+  white-space: nowrap;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 10px;
+}
+
+.viz-overlay-label {
+  font-weight: bold;
+  text-align: right;
+  line-height: 1.6;
+}
+
+.viz-overlay-label::after {
+  content: ':';
+}
+
+.viz-overlay-value {
+  text-align: left;
+  line-height: 1.6;
+}
+
+.viz-fixed {
+  display: inline-block;
+  width: 6ch;  /* -xxx.x = 6 chars max */
+  text-align: right;
+}
+
+/* ---- Cursor Line, Dots & Values Overlay ---- */
+.cursor-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent);
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.cursor-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--bg-primary);
+  pointer-events: none;
+  z-index: 6;
+}
+
+.cursor-values-overlay {
+  position: absolute;
+  background: var(--legend-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-primary);
+  z-index: 15;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cursor-values-time {
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.cursor-values-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.5;
+}
+
+.cursor-values-color {
+  width: 8px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.cursor-values-label {
+  color: var(--text-secondary);
+}
+
+.cursor-values-val {
+  color: var(--text-primary);
+  margin-left: auto;
+  padding-left: 8px;
+}
+
+.point-tooltip {
+  position: absolute;
+  background: var(--legend-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-family: monospace;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 16;
+  line-height: 1.5;
+  color: var(--text-primary);
 }
 
 /* ---- Attitude View ---- */
@@ -782,20 +981,21 @@ body {
   position: relative;
 }
 
-.attitude-euler-overlay {
+.attitude-axis-legend {
   position: absolute;
   bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: bold;
+  font-family: monospace;
   background: var(--legend-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-family: monospace;
-  color: var(--text-primary);
+  padding: 2px 8px;
   z-index: 10;
-  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* ---- Edit Curves Dialog ---- */

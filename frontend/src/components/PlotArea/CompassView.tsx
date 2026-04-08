@@ -1,29 +1,37 @@
-import { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef, useCallback, useMemo } from 'react'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useThemeStore } from '../../stores/useThemeStore'
+import { PLOT_COLORS } from '../../constants'
 
 interface Props {
   panelId: string
-  series: string[] // single field
+  series: string[]
+}
+
+interface NeedleInfo {
+  color: string
+  label: string
+  deg: number
 }
 
 /** Detect whether values are in radians (all |v| <= 2*PI) or degrees */
 function isRadians(values: Float64Array): boolean {
-  const TWO_PI = Math.PI * 2 + 0.01 // small tolerance
+  const TWO_PI = Math.PI * 2 + 0.01
   for (let i = 0; i < values.length; i++) {
     if (Math.abs(values[i]!) > TWO_PI) return false
   }
   return true
 }
 
-/** Find value at nearest timestamp */
+/** Find value at nearest timestamp via binary search */
 function valueAtTime(
   timestamps: Float64Array,
   values: Float64Array,
   t: number,
 ): number | null {
   if (timestamps.length === 0) return null
-  // Binary search for nearest
   let lo = 0
   let hi = timestamps.length - 1
   while (lo < hi) {
@@ -31,7 +39,6 @@ function valueAtTime(
     if (timestamps[mid]! < t) lo = mid + 1
     else hi = mid
   }
-  // Check neighbors for closest
   if (lo > 0 && Math.abs(timestamps[lo - 1]! - t) < Math.abs(timestamps[lo]! - t)) {
     lo = lo - 1
   }
@@ -42,12 +49,46 @@ function getCSSVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
 }
 
+function getSeriesColor(index: number): string {
+  return PLOT_COLORS[index % PLOT_COLORS.length]!
+}
+
 export default function CompassView({ panelId: _panelId, series }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const fieldKey = series[0]
-  const fieldData = useDataStore((s) => (fieldKey ? s.data[fieldKey] : undefined))
+  const needleDataRef = useRef<NeedleInfo[]>([])
+  const theme = useThemeStore((s) => s.theme)
+  const data = useDataStore((s) => s.data)
+  const colorOverrides = useLayoutStore((s) => s.colorOverrides)
   const cursorTimestamp = useCursorStore((s) => s.timestamp)
+
+  // Compute needle data for the overlay outside the draw callback
+  const needleData = useMemo(() => {
+    const result: NeedleInfo[] = []
+    for (let si = 0; si < series.length; si++) {
+      const fieldKey = series[si]!
+      const fd = data[fieldKey]
+      if (!fd) continue
+
+      let rawValue: number | null = null
+      if (cursorTimestamp != null) {
+        rawValue = valueAtTime(fd.timestamps, fd.values, cursorTimestamp)
+      } else if (fd.values.length > 0) {
+        rawValue = fd.values[fd.values.length - 1]!
+      }
+      if (rawValue == null) continue
+
+      const headingDeg = isRadians(fd.values) ? rawValue * (180 / Math.PI) : rawValue
+      const normalized = ((headingDeg % 360) + 360) % 360
+      const color = colorOverrides[fieldKey] ?? (si === 0 ? '#e53935' : getSeriesColor(si))
+
+      const colonIdx2 = fieldKey.indexOf(':')
+      const fullPath = colonIdx2 >= 0 ? fieldKey.substring(colonIdx2 + 1) : fieldKey
+      result.push({ color, label: fullPath, deg: normalized })
+    }
+    needleDataRef.current = result
+    return result
+  }, [series, data, colorOverrides, cursorTimestamp])
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -62,35 +103,32 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
     canvas.height = h * dpr
     ctx.scale(dpr, dpr)
 
-    // Colors from CSS vars
     const bgSecondary = getCSSVar('--bg-secondary')
     const borderColor = getCSSVar('--border')
-    const needleColor = '#e53935' // red needle
-    const textPrimary = getCSSVar('--text-primary')
     const textSecondary = getCSSVar('--text-secondary')
 
     // Clear
     ctx.fillStyle = bgSecondary
     ctx.fillRect(0, 0, w, h)
 
-    // Compass geometry
+    // Compass geometry — smaller, leave room for overlay at bottom
     const padding = 24
-    const radius = Math.min(w, h) / 2 - padding
+    const radius = Math.min(w, h) / 2 - padding - 50
     if (radius <= 10) return
     const cx = w / 2
-    const cy = h / 2 - 12 // leave room for value text below
+    const cy = h / 2 - 20  // shift up to leave room for overlay
 
-    // Draw outer circle
+    // Outer circle
     ctx.beginPath()
     ctx.arc(cx, cy, radius, 0, Math.PI * 2)
     ctx.strokeStyle = borderColor
     ctx.lineWidth = 2
     ctx.stroke()
 
-    // Draw tick marks every 30 degrees and labels
+    // Tick marks and labels
     const cardinals: Record<number, string> = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }
     for (let deg = 0; deg < 360; deg += 10) {
-      const rad = ((deg - 90) * Math.PI) / 180 // -90 so 0 deg = North (up)
+      const rad = ((deg - 90) * Math.PI) / 180
       const isCardinal = deg % 90 === 0
       const isMajor = deg % 30 === 0
       const tickLen = isCardinal ? 14 : isMajor ? 10 : 5
@@ -107,7 +145,6 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
       ctx.lineWidth = isCardinal ? 2 : 1
       ctx.stroke()
 
-      // Cardinal labels
       if (cardinals[deg]) {
         const labelR = radius + 14
         const lx = cx + Math.cos(rad) * labelR
@@ -117,10 +154,7 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillText(cardinals[deg]!, lx, ly)
-      }
-
-      // Degree labels at 30-degree intervals (not cardinals)
-      if (isMajor && !isCardinal) {
+      } else if (isMajor) {
         const labelR = radius + 14
         const lx = cx + Math.cos(rad) * labelR
         const ly = cy + Math.sin(rad) * labelR
@@ -132,118 +166,83 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
       }
     }
 
-    // Get current heading value
-    let headingDeg: number | null = null
-    if (fieldData && cursorTimestamp != null) {
-      const rawValue = valueAtTime(fieldData.timestamps, fieldData.values, cursorTimestamp)
-      if (rawValue != null) {
-        headingDeg = isRadians(fieldData.values) ? rawValue * (180 / Math.PI) : rawValue
-      }
-    } else if (fieldData && fieldData.values.length > 0) {
-      // No cursor, show last value
-      const raw = fieldData.values[fieldData.values.length - 1]!
-      headingDeg = isRadians(fieldData.values) ? raw * (180 / Math.PI) : raw
-    }
+    // Center dot
+    ctx.beginPath()
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2)
+    ctx.fillStyle = textSecondary
+    ctx.fill()
 
-    if (headingDeg != null) {
-      // Normalize to 0-360
-      const normalized = ((headingDeg % 360) + 360) % 360
-      const needleRad = ((normalized - 90) * Math.PI) / 180
+    // Draw needle for EACH series
+    const nd = needleDataRef.current
+    for (let si = 0; si < nd.length; si++) {
+      const info = nd[si]!
+      const needleRad = ((info.deg - 90) * Math.PI) / 180
+      const color = info.color
 
-      // Draw needle (main direction)
-      const needleLen = radius * 0.75
+      // Needle triangle
+      const needleLen = radius * (si === 0 ? 0.75 : 0.65 - si * 0.05)
       const tipX = cx + Math.cos(needleRad) * needleLen
       const tipY = cy + Math.sin(needleRad) * needleLen
 
-      // Needle triangle
       const baseAngle1 = needleRad + Math.PI / 2
       const baseAngle2 = needleRad - Math.PI / 2
-      const baseLen = 6
+      const baseLen = si === 0 ? 6 : 4
 
       ctx.beginPath()
       ctx.moveTo(tipX, tipY)
       ctx.lineTo(cx + Math.cos(baseAngle1) * baseLen, cy + Math.sin(baseAngle1) * baseLen)
       ctx.lineTo(cx + Math.cos(baseAngle2) * baseLen, cy + Math.sin(baseAngle2) * baseLen)
       ctx.closePath()
-      ctx.fillStyle = needleColor
+      ctx.fillStyle = color
+      ctx.globalAlpha = si === 0 ? 1.0 : 0.7
       ctx.fill()
+      ctx.globalAlpha = 1.0
 
-      // Thin tail opposite
-      const tailLen = radius * 0.3
+      // Thin tail
+      const tailLen = radius * 0.25
       const tailX = cx - Math.cos(needleRad) * tailLen
       const tailY = cy - Math.sin(needleRad) * tailLen
       ctx.beginPath()
       ctx.moveTo(cx, cy)
       ctx.lineTo(tailX, tailY)
-      ctx.strokeStyle = needleColor
-      ctx.lineWidth = 1.5
-      ctx.globalAlpha = 0.5
+      ctx.strokeStyle = color
+      ctx.lineWidth = 1
+      ctx.globalAlpha = 0.4
       ctx.stroke()
-      ctx.globalAlpha = 1
-
-      // Center dot
-      ctx.beginPath()
-      ctx.arc(cx, cy, 4, 0, Math.PI * 2)
-      ctx.fillStyle = needleColor
-      ctx.fill()
-
-      // Value text below compass
-      ctx.font = 'bold 18px monospace'
-      ctx.fillStyle = needleColor
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillText(`${normalized.toFixed(1)}\u00B0`, cx, cy + radius + 20)
-    } else {
-      // No data
-      ctx.font = '14px sans-serif'
-      ctx.fillStyle = textPrimary
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillText('No data', cx, cy + radius + 20)
+      ctx.globalAlpha = 1.0
     }
+  }, [needleData, theme])
 
-    // Field name at top
-    if (fieldKey) {
-      const shortName = fieldKey.split('/').slice(-1)[0] ?? fieldKey
-      ctx.font = '11px sans-serif'
-      ctx.fillStyle = textSecondary
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'top'
-      ctx.fillText(shortName, cx, 4)
-    }
-  }, [fieldKey, fieldData, cursorTimestamp])
+  useEffect(() => { draw() }, [draw])
 
-  // Draw on every relevant change
-  useEffect(() => {
-    draw()
-  }, [draw])
-
-  // ResizeObserver
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-
-    const observer = new ResizeObserver(() => {
-      draw()
-    })
+    const observer = new ResizeObserver(() => draw())
     observer.observe(el)
     return () => observer.disconnect()
   }, [draw])
 
-  // Fetch data if missing
+  // Fetch missing data
   const fetchFields = useDataStore((s) => s.fetchFields)
   useEffect(() => {
-    if (fieldKey && !fieldData) {
-      fetchFields([fieldKey])
-    }
-  }, [fieldKey, fieldData, fetchFields])
+    const missing = series.filter((s) => !data[s])
+    if (missing.length > 0) fetchFields(missing)
+  }, [series, data, fetchFields])
 
   return (
     <div ref={containerRef} className="compass-view">
-      <canvas
-        ref={canvasRef}
-        style={{ width: '100%', height: '100%' }}
-      />
+      <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+      {needleData.length > 0 && (
+        <div className="viz-overlay">
+          {needleData.map((nd, i) => (
+            <React.Fragment key={i}>
+              <span className="viz-overlay-label" style={{ color: nd.color }}>{nd.label}</span>
+              <span className="viz-overlay-value">{nd.deg.toFixed(1)}&deg;</span>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

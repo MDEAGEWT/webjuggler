@@ -8,6 +8,7 @@ import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar/Sidebar'
 import SplitLayout from './components/PlotArea/SplitLayout'
 import PlaybackBar from './components/PlaybackBar'
+import RightSidebar from './components/RightSidebar'
 import ToastContainer from './components/ToastContainer'
 
 export default function App() {
@@ -72,6 +73,7 @@ export default function App() {
         <div className="plot-area">
           <SplitLayout node={root} />
         </div>
+        <RightSidebar />
       </div>
       <PlaybackBar />
       <ToastContainer />

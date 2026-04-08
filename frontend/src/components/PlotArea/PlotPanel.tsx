@@ -71,7 +71,7 @@ export default function PlotPanel({ node }: Props) {
       onDrop={handleDrop}
       onContextMenu={handleContextMenu}
     >
-      {node.series.length === 1 && node.plotMode === 'timeseries' && (
+      {node.series.length >= 1 && node.plotMode === 'timeseries' && (
         <button
           className="plot-mode-btn"
           onClick={() => setDisplayMode(node.id, node.displayMode === 'compass' ? 'graph' : 'compass')}
@@ -106,7 +106,7 @@ export default function PlotPanel({ node }: Props) {
         <XYPlot panelId={node.id} series={node.series} />
       ) : node.plotMode === '3d' && node.series.length >= 3 ? (
         <ThreeDPlot panelId={node.id} series={node.series} />
-      ) : node.displayMode === 'compass' && node.series.length === 1 ? (
+      ) : node.displayMode === 'compass' && node.series.length >= 1 ? (
         <CompassView panelId={node.id} series={node.series} />
       ) : (
         <TimeSeriesPlot panelId={node.id} series={node.series} />

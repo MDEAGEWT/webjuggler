@@ -4,6 +4,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
+import AxisControls from './AxisControls'
+import type { LayoutNode, PlotNode } from '../../types'
+
+const DEFAULT_NEGATE = [false, false, false] as boolean[]
+
+function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
+  if (node.type === 'plot') return node.id === id ? node : null
+  return findPlotNode(node.children[0], id) ?? findPlotNode(node.children[1], id)
+}
 
 interface Props {
   panelId: string
@@ -52,10 +62,9 @@ function createAxisLabel(
   scene.add(sprite)
 }
 
-export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
+export default function ThreeDPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
-  // Store refs for cursor sphere updates without re-creating the scene
   const cursorSphereRef = useRef<THREE.Mesh | null>(null)
   const normalizedPositionsRef = useRef<Float32Array | null>(null)
   const timestampsRef = useRef<Float64Array | null>(null)
@@ -63,6 +72,10 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const theme = useThemeStore((s) => s.theme)
+  const axisNegate = useLayoutStore((s) => {
+    const plot = findPlotNode(s.root, panelId)
+    return plot?.axisNegate ?? DEFAULT_NEGATE
+  })
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -119,9 +132,14 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
       1000,
     )
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'low-power' })
     renderer.setSize(el.clientWidth, el.clientHeight)
-    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)) // cap DPR to reduce GPU load
+
+    // Handle WebGL context loss gracefully
+    const canvas = renderer.domElement
+    canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault() })
+    canvas.addEventListener('webglcontextrestored', () => { renderer.setSize(el.clientWidth, el.clientHeight) })
     el.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -133,12 +151,17 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
     let yMin = Infinity, yMax = -Infinity
     let zMin = Infinity, zMax = -Infinity
 
+    const negX = axisNegate[0] ? -1 : 1
+    const negY = axisNegate[1] ? -1 : 1
+    const negZ = axisNegate[2] ? -1 : 1
+
     for (let i = 0; i < len; i++) {
-      const xv = xData.values[i]!, yv = yData.values[i]!, zv = zData.values[i]!
+      const xv = xData.values[i]! * negX, yv = yData.values[i]! * negY, zv = zData.values[i]! * negZ
       if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv
       if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv
       if (zv < zMin) zMin = zv; if (zv > zMax) zMax = zv
     }
+    // Note: axis mapping below: data X→X, data Y→Z(depth), data Z→Y(up)
 
     const xRange = xMax - xMin || 1
     const yRange = yMax - yMin || 1
@@ -146,9 +169,10 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
 
     const positions = new Float32Array(len * 3)
     for (let i = 0; i < len; i++) {
-      positions[i * 3] = ((xData.values[i]! - xMin) / xRange) * 2 - 1
-      positions[i * 3 + 1] = ((yData.values[i]! - yMin) / yRange) * 2 - 1
-      positions[i * 3 + 2] = ((zData.values[i]! - zMin) / zRange) * 2 - 1
+      // Map data XYZ → Three.js: X→X, Y→Z, Z→Y (so Z-axis is vertical in Three.js Y-up)
+      positions[i * 3]     = ((xData.values[i]! * negX - xMin) / xRange) * 2 - 1
+      positions[i * 3 + 1] = ((zData.values[i]! * negZ - zMin) / zRange) * 2 - 1  // data Z → Three.js Y (up)
+      positions[i * 3 + 2] = ((yData.values[i]! * negY - yMin) / yRange) * 2 - 1  // data Y → Three.js Z (depth)
     }
 
     // Store for cursor updates
@@ -184,19 +208,16 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
     scene.add(cursorSphere)
     cursorSphereRef.current = cursorSphere
 
-    // Axis lines
+    // Axis lines — mapped: Three.js X=data X, Three.js Y(up)=data Z, Three.js Z(depth)=data Y
     const axisLen = 1.3
-    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1 + axisLen * 2, -1, -1), 0xff4444)
-    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1 + axisLen * 2, -1), 0x44ff44)
-    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1, -1 + axisLen * 2), 0x4444ff)
+    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1 + axisLen * 2, -1, -1), 0xff4444)  // X axis (horizontal right)
+    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1 + axisLen * 2, -1), 0x4444ff)  // Z axis (vertical up)
+    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1, -1 + axisLen * 2), 0x44ff44)  // Y axis (depth)
 
-    // Axis labels
-    const xLabel = xField.split('/').slice(-1)[0] ?? xField
-    const yLabel = yField.split('/').slice(-1)[0] ?? yField
-    const zLabel = zField.split('/').slice(-1)[0] ?? zField
-    createAxisLabel(scene, xLabel, new THREE.Vector3(1.5, -1.2, -1), '#ff6666')
-    createAxisLabel(scene, yLabel, new THREE.Vector3(-1.2, 1.5, -1), '#66ff66')
-    createAxisLabel(scene, zLabel, new THREE.Vector3(-1.2, -1.2, 1.5), '#6666ff')
+    // Axis labels — simple X/Y/Z
+    createAxisLabel(scene, 'X', new THREE.Vector3(1.5, -1.2, -1), '#ff6666')
+    createAxisLabel(scene, 'Z', new THREE.Vector3(-1.2, 1.5, -1), '#6666ff')
+    createAxisLabel(scene, 'Y', new THREE.Vector3(-1.2, -1.2, 1.5), '#66ff66')
 
     // Grid
     const gridHelper = new THREE.GridHelper(2, 10, gridMajor, gridMinor)
@@ -250,7 +271,7 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
         cleanupRef.current = null
       }
     }
-  }, [series, data, theme])
+  }, [series, data, theme, axisNegate])
 
   // Update cursor sphere position when synced timestamp changes
   useEffect(() => {
@@ -280,5 +301,14 @@ export default function ThreeDPlot({ panelId: _panelId, series }: Props) {
     sphere.visible = true
   }, [cursorTs])
 
-  return <div ref={containerRef} className="three-d-plot" />
+  const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
+  const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
+  const zLabel = series[2]?.split('/').slice(-1)[0] ?? 'Z'
+
+  return (
+    <div className="three-d-plot" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
+      <AxisControls panelId={panelId} axisLabels={[xLabel, yLabel, zLabel]} axisNegate={[!!axisNegate[0], !!axisNegate[1], !!axisNegate[2]]} />
+    </div>
+  )
 }

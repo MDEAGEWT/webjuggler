@@ -76,6 +76,7 @@ interface LayoutState {
   setPlotMode: (id: string, mode: 'timeseries' | 'xy' | '3d' | 'attitude') => void
   setDisplayMode: (id: string, mode: 'graph' | 'compass') => void
   setColorOverride: (field: string, color: string) => void
+  toggleAxisNegate: (id: string, axisIndex: number) => void
   undo: () => void
   redo: () => void
 }
@@ -179,6 +180,16 @@ export const useLayoutStore = create<LayoutState>()(
       setColorOverride: (field, color) =>
         set((state) => ({
           colorOverrides: { ...state.colorOverrides, [field]: color },
+        })),
+
+      toggleAxisNegate: (id, axisIndex) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: findAndReplace(state.root, id, (plot) => {
+            const neg = [...(plot.axisNegate ?? [false, false, false])]
+            neg[axisIndex] = !neg[axisIndex]
+            return { ...plot, axisNegate: neg }
+          }),
         })),
 
       undo: () =>

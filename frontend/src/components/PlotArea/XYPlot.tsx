@@ -2,14 +2,24 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
 import { PLOT_COLORS } from '../../constants'
+import AxisControls from './AxisControls'
+import type { LayoutNode, PlotNode } from '../../types'
+
+const DEFAULT_NEGATE = [false, false, false] as boolean[]
+
+function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
+  if (node.type === 'plot') return node.id === id ? node : null
+  return findPlotNode(node.children[0], id) ?? findPlotNode(node.children[1], id)
+}
 
 interface Props {
   panelId: string
   series: string[]
 }
 
-export default function XYPlot({ panelId: _panelId, series }: Props) {
+export default function XYPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const data = useDataStore((s) => s.data)
@@ -17,6 +27,10 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
   const cursorTs = useCursorStore((s) => s.timestamp)
   const setCursor = useCursorStore((s) => s.setCursor)
   const theme = useThemeStore((s) => s.theme)
+  const axisNegate = useLayoutStore((s) => {
+    const plot = findPlotNode(s.root, panelId)
+    return plot?.axisNegate ?? DEFAULT_NEGATE
+  })
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -51,8 +65,10 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
     if (!ctx) return
     ctx.scale(dpr, dpr)
 
-    const xVals = xData.values
-    const yVals = yData.values
+    const negX = axisNegate[0] ? -1 : 1
+    const negY = axisNegate[1] ? -1 : 1
+    const xVals = negX === 1 ? xData.values : Float64Array.from(xData.values, v => v * -1)
+    const yVals = negY === 1 ? yData.values : Float64Array.from(yData.values, v => v * -1)
     const timestamps = xData.timestamps
     const len = Math.min(xVals.length, yVals.length)
     if (len === 0) return
@@ -177,7 +193,7 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
       ctx.arc(cx, cy, 3, 0, Math.PI * 2)
       ctx.fill()
     }
-  }, [series, data, cursorTs, theme])
+  }, [series, data, cursorTs, theme, axisNegate])
 
   // Draw on data/cursor change
   useEffect(() => { draw() }, [draw])
@@ -236,9 +252,13 @@ export default function XYPlot({ panelId: _panelId, series }: Props) {
     if (ts != null) setCursor(ts)
   }, [series, data, setCursor])
 
+  const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
+  const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
+
   return (
     <div ref={containerRef} className="xy-plot" onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      <AxisControls panelId={panelId} axisLabels={[xLabel, yLabel]} axisNegate={[!!axisNegate[0], !!axisNegate[1]]} />
     </div>
   )
 }

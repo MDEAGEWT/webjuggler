@@ -30,10 +30,16 @@ export interface SplitNode {
   children: [LayoutNode, LayoutNode]
 }
 
+export interface AxisTransform {
+  negate?: boolean  // multiply values by -1
+  swap?: [number, number]  // swap two axis indices (e.g., [1, 2] swaps Y and Z)
+}
+
 export interface PlotNode {
   type: 'plot'
   id: string
   series: string[]
   plotMode: 'timeseries' | 'xy' | '3d' | 'attitude'
   displayMode?: 'graph' | 'compass'
+  axisNegate?: boolean[]  // per-axis negate: [negX, negY, negZ]
 }

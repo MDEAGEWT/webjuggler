@@ -94,26 +94,30 @@ frontend/src/
 - [x] **Undo/Redo** — Ctrl+Z/Y for layout changes (split, close, clear series)
 - [x] **Layout save/restore** — persist plot layout + series assignments to localStorage
 - [ ] **Data transforms** — derivative, moving average, integral, scale, outlier removal. Applied per-series, computed client-side
-- [x] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all
-- [ ] **Multi-file timestamp merge** — when plotting series from different files on the same plot, merge timestamp arrays (no interpolation, null gaps). Currently uses first series' timestamps only, so other-file series show empty
+- [x] **Synchronized zoom/pan** — all time-series plots share the same time range. Zoom one = zoom all. 2D drag zoom (X+Y always)
+- [x] **Multi-file timestamp merge** — merged timestamp arrays with nearest-neighbor value lookup (no interpolation). spanGaps connects across nulls
 
 ### Important — Usability
-- [x] **Legend with interaction** — show series list per plot with color, name, visibility toggle (click to hide/show), right-click to remove
-- [x] **Cursor value display** — show exact numeric values at cursor position on each plot
+- [x] **Legend with interaction** — color + topic/field path, click to hide/show, right-click to remove
+- [x] **Cursor value display** — values overlay follows cursor line with dots at intersection points. Sorted by series order
 - [x] **Playback controls** — timeline slider, play/pause button, playback speed (0.5x-10x)
-- [x] **Keyboard shortcuts** — V split vertical, H split horizontal, Delete remove series
+- [x] **Keyboard shortcuts** — V split vertical, H split horizontal, Delete remove series, Ctrl+Z/Y undo/redo, Space play/pause
 - [x] **Toast notifications** — show errors/status to the user (upload failed, parse error, token expired)
-- [x] **Dark/Light mode toggle** — current theme is dark-only. Add light mode option, persist preference. Dark = default
-- [ ] **Edit Curves dialog** — PlotJuggler-style series editor: change color, rename, switch display mode. Accessible via right-click or legend interaction
+- [x] **Dark/Light mode toggle** — CSS variables, persisted preference. Dark = default
+- [x] **Right sidebar toggles** — Zoom sync, Cursor values, Cursor mode (OFF/Point/Time)
+- [x] **Sidebar field values** — shows current value at cursor time for fetched fields
+- [ ] **Edit Curves dialog** — per-series: color picker, line style (Lines/Dots/Lines+Dots), line width. Accessible via context menu "Edit Curves..."
 
 ### Special visualization modes
-- [ ] **Heading compass view** — any single numeric field can be viewed as a compass. User toggles between graph↔compass via button on plot. Auto radian↔degree conversion. Works for any heading/yaw field, not PX4-specific
-- [ ] **3D Attitude view** — user assigns 4 fields as quaternion (w,x,y,z) → renders 3D orientation with RGB axes (R=X, G=Y, B=Z). Syncs with cursor time. Could also accept Euler angles (roll,pitch,yaw). Generic — works with any quaternion source
-- [ ] **Edit Curves dialog** — series editor: change color, switch display mode (graph/compass/attitude). Accessible via right-click or legend
+- [x] **Heading compass view** — multi-needle compass, auto radian↔degree, full topic/field labels in overlay
+- [x] **3D Attitude view** — multi-quaternion comparison (up to 3 groups), PX4 NED→Three.js mapping, distinct rod colors per group, RGB axis tips, euler overlay
+- [x] **X-Y plot** — canvas scatter with trajectory line, cursor sync highlight
+- [x] **3D scatter plot** — Three.js with orbit controls, axis negate buttons, Z=vertical mapping
+- [x] **Cursor modes** — OFF (playback only), Point (nearest data point hover with PlotJuggler-style tooltip), Time (move tracker)
+- [ ] **3D axis config dialog** — swap/assign which data field maps to X/Y/Z, negate toggle. Small popup from axis control buttons
 
 ### Nice-to-have
 - [ ] **Tabbed plot groups** — organize plots into named tabs instead of one giant split tree
-- [ ] **Plot customization** — line width, grid toggle, axis labels, dot mode vs line mode
 - [ ] **Recent files menu** — quick access to previously opened files
 - [ ] **Time offset controls** — remove time offset, show relative time from arbitrary point
 - [ ] **Fullscreen mode** — F11 or button to maximize plot area
@@ -124,6 +128,7 @@ frontend/src/
 - [ ] ROS2 db3 file support (SQLite JDBC + CDR deserialization)
 - [ ] Server directory browsing (NAS mount)
 - [ ] Live data streaming (ROS2 topics, UDP, WebSocket)
+- [ ] Data transforms (derivative, moving average, etc.)
 
 ### Not planned
 - Data export (CSV/image)

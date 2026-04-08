@@ -7,36 +7,26 @@ function getSeriesColor(index: number): string {
   return PLOT_COLORS[index % PLOT_COLORS.length]!
 }
 
-/** Extract a display label from a composite field path like "fileId:topic/field" */
+/** Extract a display label — show topic/field, with file prefix if multi-file */
 function displayName(compositeField: string): string {
   const files = useFileStore.getState().files
   const colonIdx = compositeField.indexOf(':')
   if (colonIdx === -1) {
-    // Legacy path without fileId prefix
-    return compositeField.split('/').slice(-1)[0] ?? compositeField
+    return compositeField
   }
   const fileId = compositeField.substring(0, colonIdx)
-  const fieldPath = compositeField.substring(colonIdx + 1)
-  const shortField = fieldPath.split('/').slice(-1)[0] ?? fieldPath
+  const fieldPath = compositeField.substring(colonIdx + 1) // "topic/field"
 
-  // If only one file loaded, no need for prefix
-  if (files.length <= 1) return shortField
+  if (files.length <= 1) return fieldPath
 
   const file = files.find((f) => f.fileId === fileId)
   const prefix = file ? file.shortName : fileId.substring(0, 8)
-  return `[${prefix}] ${shortField}`
-}
-
-function formatValue(v: number | null | undefined): string {
-  if (v == null) return '\u2014'
-  if (Number.isInteger(v)) return v.toString()
-  return v.toPrecision(6)
+  return `[${prefix}] ${fieldPath}`
 }
 
 interface PlotLegendProps {
   panelId: string
   series: string[]
-  cursorValues: Record<string, number | null>
   hiddenSeries: Set<string>
   onToggleVisibility: (field: string) => void
   onRemoveSeries: (field: string) => void
@@ -44,7 +34,6 @@ interface PlotLegendProps {
 
 export default function PlotLegend({
   series,
-  cursorValues,
   hiddenSeries,
   onToggleVisibility,
   onRemoveSeries,
@@ -79,9 +68,6 @@ export default function PlotLegend({
               style={{ background: color }}
             />
             <span className="legend-name">{displayName(field)}</span>
-            <span className="legend-value">
-              {formatValue(cursorValues[field])}
-            </span>
           </div>
         )
       })}
