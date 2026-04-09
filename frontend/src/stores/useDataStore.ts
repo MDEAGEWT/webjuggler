@@ -42,6 +42,9 @@ export const useDataStore = create<DataState>((set, get) => ({
           data: { ...state.data, ...mapped },
         }))
       }
+      // Re-evaluate custom functions now that new source data is available
+      const { useCustomFunctionStore } = await import('./useCustomFunctionStore')
+      setTimeout(() => useCustomFunctionStore.getState().evaluateAll(), 0)
     } catch (err) {
       console.error('Failed to fetch field data:', err)
       const { useToastStore } = await import('./useToastStore')
@@ -49,7 +52,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     }
   },
 
-  clearFileData: (fileId) =>
+  clearFileData: (fileId) => {
     set((state) => {
       const data: Record<string, FieldData> = {}
       for (const [key, val] of Object.entries(state.data)) {
@@ -58,7 +61,12 @@ export const useDataStore = create<DataState>((set, get) => ({
         }
       }
       return { data }
-    }),
+    })
+    // Re-evaluate custom functions (some may depend on deleted file's data)
+    import('./useCustomFunctionStore').then((m) =>
+      setTimeout(() => m.useCustomFunctionStore.getState().evaluateAll(), 0)
+    )
+  },
 
   setCustomData: (key, fieldData) =>
     set((state) => ({

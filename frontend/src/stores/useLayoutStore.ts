@@ -62,6 +62,19 @@ function removePlot(node: LayoutNode, targetId: string): LayoutNode | null {
   return { ...node, children: [left, right] }
 }
 
+function removeFieldFromTree(node: LayoutNode, field: string): LayoutNode {
+  if (node.type === 'plot') {
+    return { ...node, series: node.series.filter((s) => s !== field) }
+  }
+  return {
+    ...node,
+    children: [
+      removeFieldFromTree(node.children[0], field),
+      removeFieldFromTree(node.children[1], field),
+    ],
+  }
+}
+
 interface LayoutState {
   root: LayoutNode
   focusedPanelId: string | null
@@ -81,6 +94,7 @@ interface LayoutState {
   setLineStyle: (id: string, style: 'lines' | 'dots' | 'lines-dots') => void
   setLineWidth: (id: string, width: number) => void
   setAxisMapping: (id: string, mapping: [number, number, number]) => void
+  removeSeriesFromAll: (field: string) => void
   undo: () => void
   redo: () => void
 }
@@ -170,6 +184,12 @@ export const useLayoutStore = create<LayoutState>()(
             series: [],
             plotMode: 'timeseries',
           })),
+        })),
+
+      removeSeriesFromAll: (field) =>
+        set((state) => ({
+          ...pushUndo(state),
+          root: removeFieldFromTree(state.root, field),
         })),
 
       setPlotMode: (id, mode) =>

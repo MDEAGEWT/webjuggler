@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { CustomFunctionDef } from '../types'
 import { evaluateExpression } from '../components/CustomFunction/evaluateExpression'
 import { useDataStore } from './useDataStore'
+import { useLayoutStore } from './useLayoutStore'
 
 interface CustomFunctionState {
   functions: Record<string, CustomFunctionDef>
@@ -54,6 +55,7 @@ export const useCustomFunctionStore = create<CustomFunctionState>()(
         if (!fn) return
         const dataKey = `custom:${fn.name}`
         useDataStore.getState().removeCustomData(dataKey)
+        useLayoutStore.getState().removeSeriesFromAll(dataKey)
         set((state) => {
           const { [id]: _, ...rest } = state.functions
           return {
