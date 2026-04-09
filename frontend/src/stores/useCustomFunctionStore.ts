@@ -63,6 +63,7 @@ export const useCustomFunctionStore = create<CustomFunctionState>()(
         const dataKey = `custom:${fn.name}`
         useDataStore.getState().removeCustomData(dataKey)
         useLayoutStore.getState().removeSeriesFromAll(dataKey)
+        useLayoutStore.getState().closeEditorTabForFunction(id)
         set((state) => {
           const { [id]: _, ...rest } = state.functions
           return {
