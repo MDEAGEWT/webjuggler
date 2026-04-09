@@ -43,6 +43,9 @@ function seriesLabel(compositeField: string): string {
 
 /** Short name for cursor overlay (no file prefix, just the field leaf) */
 function shortLabel(compositeField: string): string {
+  if (compositeField.startsWith('custom:')) {
+    return '[fn] ' + compositeField.substring(7)
+  }
   const colonIdx = compositeField.indexOf(':')
   const path = colonIdx === -1 ? compositeField : compositeField.substring(colonIdx + 1)
   return path.split('/').slice(-1)[0] ?? path

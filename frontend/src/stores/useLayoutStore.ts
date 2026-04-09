@@ -75,6 +75,19 @@ function removeFieldFromTree(node: LayoutNode, field: string): LayoutNode {
   }
 }
 
+function renameFieldInTree(node: LayoutNode, oldField: string, newField: string): LayoutNode {
+  if (node.type === 'plot') {
+    return { ...node, series: node.series.map((s) => s === oldField ? newField : s) }
+  }
+  return {
+    ...node,
+    children: [
+      renameFieldInTree(node.children[0], oldField, newField),
+      renameFieldInTree(node.children[1], oldField, newField),
+    ],
+  }
+}
+
 interface LayoutState {
   root: LayoutNode
   focusedPanelId: string | null
@@ -95,6 +108,7 @@ interface LayoutState {
   setLineWidth: (id: string, width: number) => void
   setAxisMapping: (id: string, mapping: [number, number, number]) => void
   removeSeriesFromAll: (field: string) => void
+  renameSeriesInAll: (oldField: string, newField: string) => void
   undo: () => void
   redo: () => void
 }
@@ -190,6 +204,16 @@ export const useLayoutStore = create<LayoutState>()(
         set((state) => ({
           ...pushUndo(state),
           root: removeFieldFromTree(state.root, field),
+        })),
+
+      renameSeriesInAll: (oldField, newField) =>
+        set((state) => ({
+          root: renameFieldInTree(state.root, oldField, newField),
+          colorOverrides: Object.fromEntries(
+            Object.entries(state.colorOverrides).map(([k, v]) =>
+              [k === oldField ? newField : k, v]
+            ),
+          ),
         })),
 
       setPlotMode: (id, mode) =>

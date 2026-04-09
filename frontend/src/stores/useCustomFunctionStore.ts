@@ -36,16 +36,23 @@ export const useCustomFunctionStore = create<CustomFunctionState>()(
       },
 
       updateFunction: (id, partial) => {
-        set((state) => {
-          const existing = state.functions[id]
-          if (!existing) return state
-          return {
-            functions: {
-              ...state.functions,
-              [id]: { ...existing, ...partial },
-            },
-          }
-        })
+        const existing = get().functions[id]
+        if (!existing) return
+        const oldName = existing.name
+        const newName = partial.name ?? oldName
+        set((state) => ({
+          functions: {
+            ...state.functions,
+            [id]: { ...state.functions[id]!, ...partial },
+          },
+        }))
+        // Handle name change: clean up old data key and rename in layout
+        if (newName !== oldName) {
+          const oldKey = `custom:${oldName}`
+          const newKey = `custom:${newName}`
+          useDataStore.getState().removeCustomData(oldKey)
+          useLayoutStore.getState().renameSeriesInAll(oldKey, newKey)
+        }
         // Re-evaluate after update
         setTimeout(() => get().evaluateFunction(id), 0)
       },
