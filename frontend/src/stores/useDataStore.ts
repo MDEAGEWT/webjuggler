@@ -6,6 +6,8 @@ interface DataState {
   data: Record<string, FieldData>
   fetchFields: (fields: string[]) => Promise<void>
   clearFileData: (fileId: string) => void
+  setCustomData: (key: string, data: FieldData) => void
+  removeCustomData: (key: string) => void
 }
 
 export const useDataStore = create<DataState>((set, get) => ({
@@ -14,7 +16,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   fetchFields: async (fields) => {
     // Only fetch fields not already cached
     const cached = get().data
-    const missing = fields.filter((f) => !cached[f])
+    const missing = fields.filter((f) => !cached[f] && !f.startsWith('custom:'))
     if (missing.length === 0) return
 
     // Group by fileId (fields are "fileId:topic/field")
@@ -56,5 +58,16 @@ export const useDataStore = create<DataState>((set, get) => ({
         }
       }
       return { data }
+    }),
+
+  setCustomData: (key, fieldData) =>
+    set((state) => ({
+      data: { ...state.data, [key]: fieldData },
+    })),
+
+  removeCustomData: (key) =>
+    set((state) => {
+      const { [key]: _, ...rest } = state.data
+      return { data: rest }
     }),
 }))
