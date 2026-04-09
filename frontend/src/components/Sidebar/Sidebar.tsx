@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useFileStore } from '../../stores/useFileStore'
 import { useDataStore } from '../../stores/useDataStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useCustomFunctionStore } from '../../stores/useCustomFunctionStore'
 import TopicTree from './TopicTree'
 import { CustomSeriesSection } from './CustomSeriesSection'
-import { CustomFunctionEditor } from '../CustomFunction/CustomFunctionEditor'
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
@@ -12,8 +13,8 @@ export default function Sidebar() {
   const removeFile = useFileStore((s) => s.removeFile)
   const clearFileData = useDataStore((s) => s.clearFileData)
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set())
-  const [editorOpen, setEditorOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const addTab = useLayoutStore((s) => s.addTab)
+  const functions = useCustomFunctionStore((s) => s.functions)
 
   function toggleFileCollapse(fileId: string) {
     setCollapsedFiles((prev) => {
@@ -44,25 +45,25 @@ export default function Sidebar() {
   }
 
   return (
-    <>
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <span className="sidebar-title">Topics</span>
-          <button
-            className="sidebar-toggle"
-            onClick={() => setCollapsed(true)}
-            title="Collapse sidebar"
-          >
-            &#9664;
-          </button>
-        </div>
-        <input
-          className="sidebar-filter"
-          type="text"
-          placeholder="Filter fields..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
+    <div className="sidebar">
+      <div className="sidebar-header">
+        <span className="sidebar-title">Topics</span>
+        <button
+          className="sidebar-toggle"
+          onClick={() => setCollapsed(true)}
+          title="Collapse sidebar"
+        >
+          &#9664;
+        </button>
+      </div>
+      <input
+        className="sidebar-filter"
+        type="text"
+        placeholder="Filter fields..."
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+      />
+      <div className="sidebar-topics-zone">
         {files.length === 0 ? (
           <div className="sidebar-empty">Upload a file to see topics</div>
         ) : (
@@ -102,17 +103,16 @@ export default function Sidebar() {
             )
           })
         )}
+      </div>
+      <div className="sidebar-custom-zone">
         <CustomSeriesSection
-          onAdd={() => { setEditingId(null); setEditorOpen(true) }}
-          onEdit={(id) => { setEditingId(id); setEditorOpen(true) }}
+          onAdd={() => addTab('editor', null, 'New Function')}
+          onEdit={(id) => {
+            const fn = functions[id]
+            addTab('editor', id, fn ? `fn: ${fn.name}` : 'Edit Function')
+          }}
         />
       </div>
-      {editorOpen && (
-        <CustomFunctionEditor
-          editingId={editingId}
-          onClose={() => setEditorOpen(false)}
-        />
-      )}
-    </>
+    </div>
   )
 }
