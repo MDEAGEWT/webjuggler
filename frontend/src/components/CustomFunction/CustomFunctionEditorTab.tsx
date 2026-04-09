@@ -2,17 +2,20 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { compile } from 'mathjs/number'
 import { useCustomFunctionStore } from '../../stores/useCustomFunctionStore'
 import { useDataStore } from '../../stores/useDataStore'
+import { useLayoutStore } from '../../stores/useLayoutStore'
 import { FunctionLibrary } from './FunctionLibrary'
 import type { FunctionTemplate } from './functionTemplates'
 
 interface Props {
   editingId: string | null  // null = create mode
-  onClose: () => void
+  tabId: string
 }
 
-export const CustomFunctionEditor: React.FC<Props> = ({ editingId, onClose }) => {
+export const CustomFunctionEditorTab: React.FC<Props> = ({ editingId, tabId }) => {
   const { functions, addFunction, updateFunction } = useCustomFunctionStore()
   const fetchFields = useDataStore((s) => s.fetchFields)
+  const closeTab = useLayoutStore((s) => s.closeTab)
+  const renameTab = useLayoutStore((s) => s.renameTab)
 
   const existing = editingId ? functions[editingId] : null
 
@@ -98,6 +101,8 @@ export const CustomFunctionEditor: React.FC<Props> = ({ editingId, onClose }) =>
     return null
   }
 
+  const handleCancel = () => closeTab(tabId)
+
   const handleSubmit = useCallback(async () => {
     const err = validate()
     if (err) {
@@ -124,20 +129,16 @@ export const CustomFunctionEditor: React.FC<Props> = ({ editingId, onClose }) =>
     } else {
       addFunction(def)
     }
-    onClose()
+    renameTab(tabId, `fn: ${name}`)
+    // Do NOT close the tab — it stays open per spec
   }, [
     name, expression, mainInput, additionalInputs, selectedLibrary,
-    editingId, addFunction, updateFunction, fetchFields, onClose, functions,
+    editingId, addFunction, updateFunction, fetchFields, renameTab, tabId, functions,
   ])
 
   return (
-    <div className="dialog-overlay" onClick={onClose}>
-      <div className="dialog" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
-        <div className="dialog-header">
-          <h3>Custom Function Editor</h3>
-          <button onClick={onClose}>&times;</button>
-        </div>
-        <div className="dialog-body">
+    <div className="fn-editor-tab">
+      <div className="fn-editor-tab-content">
 
         <label className="fn-editor-label">Name:</label>
         <input
@@ -195,14 +196,13 @@ export const CustomFunctionEditor: React.FC<Props> = ({ editingId, onClose }) =>
         {error && <div className="fn-editor-error">{error}</div>}
 
         <div className="fn-editor-actions">
-          <button onClick={onClose}>Cancel</button>
+          <button onClick={handleCancel}>Cancel</button>
           <button className="fn-editor-submit" onClick={handleSubmit}>
             {editingId ? 'Save' : 'Create'}
           </button>
         </div>
 
-        </div>{/* dialog-body */}
-      </div>{/* dialog */}
+      </div>
     </div>
   )
 }

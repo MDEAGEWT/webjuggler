@@ -11,10 +11,14 @@ import PlaybackBar from './components/PlaybackBar'
 import RightSidebar from './components/RightSidebar'
 import ToastContainer from './components/ToastContainer'
 import TabBar from './components/TabBar'
+import { CustomFunctionEditorTab } from './components/CustomFunction/CustomFunctionEditorTab'
 
 export default function App() {
   const token = useAuthStore((s) => s.token)
   const root = useLayoutStore(selectActiveRoot)
+  const activeTab = useLayoutStore((s) =>
+    s.tabs.find((t) => t.id === s.activeTabId)
+  )
 
   // Apply persisted theme on mount
   useEffect(() => {
@@ -74,7 +78,14 @@ export default function App() {
         <div className="plot-area">
           <TabBar />
           <div className="tab-content">
-            <SplitLayout node={root} />
+            {activeTab?.type === 'editor' ? (
+              <CustomFunctionEditorTab
+                editingId={activeTab.editingFunctionId ?? null}
+                tabId={activeTab.id}
+              />
+            ) : (
+              <SplitLayout node={root} />
+            )}
           </div>
         </div>
         <RightSidebar />

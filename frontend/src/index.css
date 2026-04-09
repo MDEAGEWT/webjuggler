@@ -1473,3 +1473,16 @@ body {
   overflow: hidden;
   display: flex;
 }
+
+/* ---- Custom Function Editor Tab ---- */
+.fn-editor-tab {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+.fn-editor-tab-content {
+  width: 100%;
+  max-width: 520px;
+}
