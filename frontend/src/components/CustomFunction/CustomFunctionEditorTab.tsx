@@ -1,9 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { compile } from 'mathjs/number'
+import uPlot from 'uplot'
+import 'uplot/dist/uPlot.min.css'
 import { useCustomFunctionStore } from '../../stores/useCustomFunctionStore'
 import { useDataStore } from '../../stores/useDataStore'
 import { useLayoutStore } from '../../stores/useLayoutStore'
 import { FunctionLibrary } from './FunctionLibrary'
+import { evaluateExpression } from './evaluateExpression'
 import type { FunctionTemplate } from './functionTemplates'
 
 interface Props {
@@ -14,6 +17,7 @@ interface Props {
 export const CustomFunctionEditorTab: React.FC<Props> = ({ editingId, tabId }) => {
   const { functions, addFunction, updateFunction } = useCustomFunctionStore()
   const fetchFields = useDataStore((s) => s.fetchFields)
+  const data = useDataStore((s) => s.data)
   const closeTab = useLayoutStore((s) => s.closeTab)
   const renameTab = useLayoutStore((s) => s.renameTab)
 
@@ -75,6 +79,81 @@ export const CustomFunctionEditorTab: React.FC<Props> = ({ editingId, tabId }) =
   const removeAdditionalInput = useCallback((index: number) => {
     setAdditionalInputs((prev) => prev.filter((_, i) => i !== index))
   }, [])
+
+  // ---- Live preview ----
+  const previewRef = useRef<HTMLDivElement>(null)
+  const plotRef = useRef<uPlot | null>(null)
+
+  const previewData = useMemo(() => {
+    if (!mainInput || !expression.trim()) return null
+    const main = data[mainInput]
+    if (!main) return null
+
+    const additional = additionalInputs
+      .map((key) => data[key])
+      .filter((d): d is NonNullable<typeof d> => d != null)
+
+    try {
+      return evaluateExpression({ expression, main, additional })
+    } catch {
+      return null
+    }
+  }, [expression, mainInput, additionalInputs, data])
+
+  useEffect(() => {
+    if (!previewRef.current) return
+
+    if (plotRef.current) {
+      plotRef.current.destroy()
+      plotRef.current = null
+    }
+
+    if (!previewData) return
+
+    const timestamps = Array.from(previewData.timestamps)
+    const values = Array.from(previewData.values)
+
+    const opts: uPlot.Options = {
+      width: previewRef.current.clientWidth || 300,
+      height: 150,
+      cursor: { show: false },
+      legend: { show: false },
+      scales: {
+        x: { time: false },
+      },
+      axes: [
+        { stroke: '#666', grid: { stroke: '#1a1a2e' }, ticks: { stroke: '#333' }, font: '10px sans-serif', size: 30 },
+        { stroke: '#666', grid: { stroke: '#1a1a2e' }, ticks: { stroke: '#333' }, font: '10px sans-serif', size: 40 },
+      ],
+      series: [
+        {},
+        { stroke: '#4fc3f7', width: 1 },
+      ],
+    }
+
+    const plotData: uPlot.AlignedData = [timestamps, values]
+    plotRef.current = new uPlot(opts, plotData, previewRef.current)
+
+    return () => {
+      if (plotRef.current) {
+        plotRef.current.destroy()
+        plotRef.current = null
+      }
+    }
+  }, [previewData])
+
+  useEffect(() => {
+    if (!previewRef.current || !plotRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (plotRef.current) {
+          plotRef.current.setSize({ width: entry.contentRect.width, height: 150 })
+        }
+      }
+    })
+    observer.observe(previewRef.current)
+    return () => observer.disconnect()
+  }, [previewData])
 
   const formatFieldLabel = (compositeKey: string): string => {
     const colonIdx = compositeKey.indexOf(':')
@@ -139,6 +218,18 @@ export const CustomFunctionEditorTab: React.FC<Props> = ({ editingId, tabId }) =
   return (
     <div className="fn-editor-tab">
       <div className="fn-editor-tab-content">
+
+        {/* Preview plot */}
+        <div className="fn-preview-container">
+          <label className="fn-editor-label">Function Preview:</label>
+          {previewData ? (
+            <div ref={previewRef} className="fn-preview-chart" />
+          ) : (
+            <div className="fn-preview-empty">
+              {mainInput ? 'Invalid expression' : 'Add input timeseries to see preview'}
+            </div>
+          )}
+        </div>
 
         <label className="fn-editor-label">Name:</label>
         <input

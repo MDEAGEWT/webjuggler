@@ -1400,6 +1400,28 @@ body {
   border: none !important;
 }
 
+/* ---- Function Preview ---- */
+.fn-preview-container {
+  margin-bottom: 16px;
+}
+.fn-preview-chart {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.fn-preview-empty {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* ---- Sidebar Split Zones ---- */
 .sidebar-topics-zone {
   flex: 1;
