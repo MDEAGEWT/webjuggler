@@ -46,3 +46,12 @@ export interface PlotNode {
   lineWidth?: number  // default: 1.5
   axisMapping?: [number, number, number]  // indices into series array for X, Y, Z. Default [0,1,2]
 }
+
+export interface CustomFunctionDef {
+  id: string
+  name: string
+  expression: string
+  mainInput: string            // "fileId:topic/field"
+  additionalInputs: string[]   // ["fileId:topic/field", ...]
+  libraryFunction?: string
+}

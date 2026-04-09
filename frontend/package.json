@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@types/three": "^0.183.1",
+    "mathjs": "^15.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-resizable-panels": "^2.1.7",
