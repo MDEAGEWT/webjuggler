@@ -163,7 +163,8 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
         let j = 0
         for (let i = 0; i < mergedTs.length && j < fd.timestamps.length; i++) {
           if (mergedTs[i] === fd.timestamps[j]) {
-            aligned[i] = fd.values[j]!
+            const v = fd.values[j]!
+            aligned[i] = Number.isFinite(v) ? v : null
             j++
           }
         }

@@ -5,6 +5,7 @@ import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { useLayoutStore, selectActiveRoot } from '../../stores/useLayoutStore'
+import { PLOT_COLORS } from '../../constants'
 import AxisControls from './AxisControls'
 import type { LayoutNode, PlotNode } from '../../types'
 
@@ -66,9 +67,7 @@ function createAxisLabel(
 export default function ThreeDPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
-  const cursorSphereRef = useRef<THREE.Mesh | null>(null)
-  const normalizedPositionsRef = useRef<Float32Array | null>(null)
-  const timestampsRef = useRef<Float64Array | null>(null)
+  const cursorGroupsRef = useRef<{ sphere: THREE.Mesh; positions: Float32Array; timestamps: Float64Array }[]>([])
   const data = useDataStore((s) => s.data)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
@@ -96,23 +95,36 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     const el = containerRef.current
     if (!el) return
 
+    // Build trajectory groups: every 3 series = 1 trajectory
     const mapping = axisMapping
-    const xField = series[mapping[0]!]
-    const yField = series[mapping[1]!]
-    const zField = series[mapping[2]!]
-    if (!xField || !yField || !zField) return
+    const negX = axisNegate[0] ? -1 : 1
+    const negY = axisNegate[1] ? -1 : 1
+    const negZ = axisNegate[2] ? -1 : 1
 
-    const xData = data[xField]
-    const yData = data[yField]
-    const zData = data[zField]
-    if (!xData || !yData || !zData) return
+    interface TrajectoryGroup {
+      xData: { values: Float64Array; timestamps: Float64Array }
+      yData: { values: Float64Array }
+      zData: { values: Float64Array }
+      len: number
+      color: string
+    }
 
-    const len = Math.min(
-      xData.values.length,
-      yData.values.length,
-      zData.values.length,
-    )
-    if (len === 0) return
+    const groups: TrajectoryGroup[] = []
+    for (let g = 0; g + 2 < series.length; g += 3) {
+      const xField = series[g + mapping[0]!]
+      const yField = series[g + mapping[1]!]
+      const zField = series[g + mapping[2]!]
+      if (!xField || !yField || !zField) continue
+      const xd = data[xField], yd = data[yField], zd = data[zField]
+      if (!xd || !yd || !zd) continue
+      const len = Math.min(xd.values.length, yd.values.length, zd.values.length)
+      if (len === 0) continue
+      groups.push({
+        xData: xd, yData: yd, zData: zd, len,
+        color: PLOT_COLORS[g / 3 % PLOT_COLORS.length]!,
+      })
+    }
+    if (groups.length === 0) return
 
     // Cleanup previous
     if (cleanupRef.current) {
@@ -123,7 +135,6 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     // Read theme colors
     const cs = getComputedStyle(document.documentElement)
     const sceneBg = cs.getPropertyValue('--scene-bg').trim()
-    const accentColor = cs.getPropertyValue('--accent').trim()
     const cursorColor = cs.getPropertyValue('--cursor-stroke').trim()
     const gridMajor = cs.getPropertyValue('--grid-3d-major').trim()
     const gridMinor = cs.getPropertyValue('--grid-3d-minor').trim()
@@ -141,9 +152,8 @@ export default function ThreeDPlot({ panelId, series }: Props) {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'low-power' })
     renderer.setSize(el.clientWidth, el.clientHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)) // cap DPR to reduce GPU load
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
-    // Handle WebGL context loss gracefully
     const canvas = renderer.domElement
     canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault() })
     canvas.addEventListener('webglcontextrestored', () => { renderer.setSize(el.clientWidth, el.clientHeight) })
@@ -153,89 +163,88 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     controls.enableDamping = true
     controls.dampingFactor = 0.1
 
-    // Normalize data to [-1, 1] range
+    // Compute bounds across ALL groups
     let xMin = Infinity, xMax = -Infinity
     let yMin = Infinity, yMax = -Infinity
     let zMin = Infinity, zMax = -Infinity
 
-    const negX = axisNegate[0] ? -1 : 1
-    const negY = axisNegate[1] ? -1 : 1
-    const negZ = axisNegate[2] ? -1 : 1
-
-    for (let i = 0; i < len; i++) {
-      const xv = xData.values[i]! * negX, yv = yData.values[i]! * negY, zv = zData.values[i]! * negZ
-      if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv
-      if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv
-      if (zv < zMin) zMin = zv; if (zv > zMax) zMax = zv
+    for (const g of groups) {
+      for (let i = 0; i < g.len; i++) {
+        const xv = g.xData.values[i]! * negX
+        const yv = g.yData.values[i]! * negY
+        const zv = g.zData.values[i]! * negZ
+        if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv
+        if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv
+        if (zv < zMin) zMin = zv; if (zv > zMax) zMax = zv
+      }
     }
-    // Note: axis mapping below: data X→X, data Y→Z(depth), data Z→Y(up)
 
     const xRange = xMax - xMin || 1
     const yRange = yMax - yMin || 1
     const zRange = zMax - zMin || 1
 
-    const positions = new Float32Array(len * 3)
-    for (let i = 0; i < len; i++) {
-      // Map data XYZ → Three.js: X→X, Y→Z, Z→Y (so Z-axis is vertical in Three.js Y-up)
-      positions[i * 3]     = ((xData.values[i]! * negX - xMin) / xRange) * 2 - 1
-      positions[i * 3 + 1] = ((zData.values[i]! * negZ - zMin) / zRange) * 2 - 1  // data Z → Three.js Y (up)
-      positions[i * 3 + 2] = ((yData.values[i]! * negY - yMin) / yRange) * 2 - 1  // data Y → Three.js Z (depth)
+    // Track disposables for cleanup
+    const disposables: { dispose: () => void }[] = []
+    const cursorGroups: { sphere: THREE.Mesh; positions: Float32Array; timestamps: Float64Array }[] = []
+
+    // Render each trajectory group
+    for (const g of groups) {
+      const positions = new Float32Array(g.len * 3)
+      for (let i = 0; i < g.len; i++) {
+        positions[i * 3]     = ((g.xData.values[i]! * negX - xMin) / xRange) * 2 - 1
+        positions[i * 3 + 1] = ((g.zData.values[i]! * negZ - zMin) / zRange) * 2 - 1
+        positions[i * 3 + 2] = ((g.yData.values[i]! * negY - yMin) / yRange) * 2 - 1
+      }
+
+      const geometry = new THREE.BufferGeometry()
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      disposables.push(geometry)
+
+      const lineMaterial = new THREE.LineBasicMaterial({
+        color: g.color,
+        opacity: 0.8,
+        transparent: true,
+      })
+      disposables.push(lineMaterial)
+      scene.add(new THREE.Line(geometry, lineMaterial))
+
+      const ptMaterial = new THREE.PointsMaterial({
+        color: g.color,
+        size: 0.02,
+        sizeAttenuation: true,
+      })
+      disposables.push(ptMaterial)
+      scene.add(new THREE.Points(geometry, ptMaterial))
+
+      // Cursor sphere per trajectory
+      const sphereGeom = new THREE.SphereGeometry(0.018, 10, 10)
+      const sphereMat = new THREE.MeshBasicMaterial({ color: cursorColor })
+      const sphere = new THREE.Mesh(sphereGeom, sphereMat)
+      sphere.visible = false
+      scene.add(sphere)
+      disposables.push(sphereGeom, sphereMat)
+      cursorGroups.push({ sphere, positions, timestamps: g.xData.timestamps })
     }
 
-    // Store for cursor updates
-    normalizedPositionsRef.current = positions
-    timestampsRef.current = xData.timestamps
+    cursorGroupsRef.current = cursorGroups
 
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-    // Trajectory line
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: accentColor,
-      opacity: 0.8,
-      transparent: true,
-    })
-    const line = new THREE.Line(geometry, lineMaterial)
-    scene.add(line)
-
-    // Tiny points
-    const material = new THREE.PointsMaterial({
-      color: accentColor,
-      size: 0.02,
-      sizeAttenuation: true,
-    })
-    const points = new THREE.Points(geometry, material)
-    scene.add(points)
-
-    // Cursor sphere — follows synced timestamp
-    const sphereGeom = new THREE.SphereGeometry(0.04, 16, 16)
-    const sphereMat = new THREE.MeshBasicMaterial({ color: cursorColor })
-    const cursorSphere = new THREE.Mesh(sphereGeom, sphereMat)
-    cursorSphere.visible = false
-    scene.add(cursorSphere)
-    cursorSphereRef.current = cursorSphere
-
-    // Axis lines — mapped: Three.js X=data X, Three.js Y(up)=data Z, Three.js Z(depth)=data Y
+    // Axis lines
     const axisLen = 1.3
-    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1 + axisLen * 2, -1, -1), 0xff4444)  // X axis (horizontal right)
-    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1 + axisLen * 2, -1), 0x4444ff)  // Z axis (vertical up)
-    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1, -1 + axisLen * 2), 0x44ff44)  // Y axis (depth)
+    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1 + axisLen * 2, -1, -1), 0xff4444)
+    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1 + axisLen * 2, -1), 0x4444ff)
+    createAxisLine(scene, new THREE.Vector3(-1, -1, -1), new THREE.Vector3(-1, -1, -1 + axisLen * 2), 0x44ff44)
 
-    // Axis labels — simple X/Y/Z
     createAxisLabel(scene, 'X', new THREE.Vector3(1.5, -1.2, -1), '#ff6666')
     createAxisLabel(scene, 'Z', new THREE.Vector3(-1.2, 1.5, -1), '#6666ff')
     createAxisLabel(scene, 'Y', new THREE.Vector3(-1.2, -1.2, 1.5), '#66ff66')
 
-    // Grid
     const gridHelper = new THREE.GridHelper(2, 10, gridMajor, gridMinor)
     gridHelper.position.y = -1
     scene.add(gridHelper)
 
-    // Camera
     camera.position.set(2.5, 2, 2.5)
     camera.lookAt(0, 0, 0)
 
-    // Animation loop
     let animFrameId: number
     function animate() {
       animFrameId = requestAnimationFrame(animate)
@@ -244,7 +253,6 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     }
     animate()
 
-    // Resize
     const resizeObserver = new ResizeObserver(() => {
       if (el.clientWidth > 0 && el.clientHeight > 0) {
         camera.aspect = el.clientWidth / el.clientHeight
@@ -258,18 +266,12 @@ export default function ThreeDPlot({ panelId, series }: Props) {
       cancelAnimationFrame(animFrameId)
       resizeObserver.disconnect()
       controls.dispose()
-      geometry.dispose()
-      sphereGeom.dispose()
-      sphereMat.dispose()
-      lineMaterial.dispose()
-      material.dispose()
+      for (const d of disposables) d.dispose()
       renderer.dispose()
       if (el.contains(renderer.domElement)) {
         el.removeChild(renderer.domElement)
       }
-      cursorSphereRef.current = null
-      normalizedPositionsRef.current = null
-      timestampsRef.current = null
+      cursorGroupsRef.current = []
     }
 
     return () => {
@@ -280,32 +282,30 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     }
   }, [series, data, theme, axisNegate, axisMapping])
 
-  // Update cursor sphere position when synced timestamp changes
+  // Update cursor sphere positions when synced timestamp changes
   useEffect(() => {
-    const sphere = cursorSphereRef.current
-    const positions = normalizedPositionsRef.current
-    const timestamps = timestampsRef.current
-    if (!sphere || !positions || !timestamps) return
+    const groups = cursorGroupsRef.current
+    if (groups.length === 0) return
 
     if (cursorTs == null) {
-      sphere.visible = false
+      for (const g of groups) g.sphere.visible = false
       return
     }
 
-    // Find nearest timestamp index
-    let bestIdx = 0
-    let bestDist = Math.abs(timestamps[0]! - cursorTs)
-    for (let i = 1; i < timestamps.length; i++) {
-      const d = Math.abs(timestamps[i]! - cursorTs)
-      if (d < bestDist) { bestDist = d; bestIdx = i }
+    for (const g of groups) {
+      let bestIdx = 0
+      let bestDist = Math.abs(g.timestamps[0]! - cursorTs)
+      for (let i = 1; i < g.timestamps.length; i++) {
+        const d = Math.abs(g.timestamps[i]! - cursorTs)
+        if (d < bestDist) { bestDist = d; bestIdx = i }
+      }
+      g.sphere.position.set(
+        g.positions[bestIdx * 3]!,
+        g.positions[bestIdx * 3 + 1]!,
+        g.positions[bestIdx * 3 + 2]!,
+      )
+      g.sphere.visible = true
     }
-
-    sphere.position.set(
-      positions[bestIdx * 3]!,
-      positions[bestIdx * 3 + 1]!,
-      positions[bestIdx * 3 + 2]!,
-    )
-    sphere.visible = true
   }, [cursorTs])
 
   const mapping = axisMapping
@@ -313,9 +313,30 @@ export default function ThreeDPlot({ panelId, series }: Props) {
   const yLabel = series[mapping[1]!]?.split('/').slice(-1)[0] ?? 'Y'
   const zLabel = series[mapping[2]!]?.split('/').slice(-1)[0] ?? 'Z'
 
+  // Build legend entries (one per trajectory group)
+  const legendEntries: { color: string; label: string }[] = []
+  for (let g = 0; g + 2 < series.length; g += 3) {
+    const stripFileId = (s: string) => { const i = s.indexOf(':'); return i >= 0 ? s.substring(i + 1) : s }
+    const fields = [series[g]!, series[g + 1]!, series[g + 2]!].map(stripFileId)
+    const names = fields.map((f) => f.split('/').slice(-1)[0] ?? f)
+    const topic = fields[0]!.split('/').slice(0, -1).join('/')
+    const label = topic ? `${topic} (${names.join(', ')})` : names.join(', ')
+    legendEntries.push({ color: PLOT_COLORS[g / 3 % PLOT_COLORS.length]!, label })
+  }
+
   return (
     <div className="three-d-plot" style={{ position: 'relative', overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
+      {legendEntries.length > 0 && (
+        <div className="xy-legend">
+          {legendEntries.map((entry, i) => (
+            <div key={i} className="xy-legend-item">
+              <span className="xy-legend-color" style={{ background: entry.color }} />
+              <span className="xy-legend-label">{entry.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <AxisControls panelId={panelId} axisLabels={[xLabel, yLabel, zLabel]} axisNegate={[!!axisNegate[0], !!axisNegate[1], !!axisNegate[2]]} />
     </div>
   )

@@ -24,8 +24,6 @@ interface MenuPos {
 export default function PlotPanel({ node }: Props) {
   const addSeries = useLayoutStore((s) => s.addSeries)
   const setFocusedPanel = useLayoutStore((s) => s.setFocusedPanel)
-  const setDisplayMode = useLayoutStore((s) => s.setDisplayMode)
-  const setPlotMode = useLayoutStore((s) => s.setPlotMode)
   const isFocused = useLayoutStore((s) => s.focusedPanelId === node.id)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null)
@@ -74,43 +72,6 @@ export default function PlotPanel({ node }: Props) {
       onDrop={handleDrop}
       onContextMenu={handleContextMenu}
     >
-      {node.series.length >= 1 && node.plotMode === 'timeseries' && (
-        <button
-          className="plot-mode-btn"
-          onClick={() => setDisplayMode(node.id, node.displayMode === 'compass' ? 'graph' : 'compass')}
-        >
-          {node.displayMode === 'compass' ? '\u{1F4C8}' : '\u{1F9ED}'}
-        </button>
-      )}
-      {node.series.length >= 4 && node.plotMode !== 'attitude' && (
-        <button
-          className="plot-mode-btn"
-          style={{ left: node.series.length === 1 ? 36 : 4 }}
-          title="Attitude view (quaternion)"
-          onClick={() => setPlotMode(node.id, 'attitude')}
-        >
-          Q
-        </button>
-      )}
-      {node.plotMode === 'attitude' && node.series.length >= 4 && (
-        <button
-          className="plot-mode-btn"
-          title="Back to time series"
-          onClick={() => setPlotMode(node.id, 'timeseries')}
-        >
-          T
-        </button>
-      )}
-      {node.plotMode === '3d' && node.series.length >= 3 && (
-        <button
-          className="plot-mode-btn"
-          style={{ right: 4, left: 'auto' }}
-          title="3D Axis Config"
-          onClick={() => setShowAxisDialog(true)}
-        >
-          &#x2699;
-        </button>
-      )}
       {node.series.length === 0 ? (
         <EmptyPlot />
       ) : node.plotMode === 'attitude' && node.series.length >= 4 ? (
@@ -130,7 +91,10 @@ export default function PlotPanel({ node }: Props) {
           x={menuPos.x}
           y={menuPos.y}
           onClose={() => setMenuPos(null)}
+          seriesCount={node.series.length}
+          plotMode={node.plotMode}
           onEditCurves={node.series.length > 0 ? () => setShowEditDialog(true) : undefined}
+          onAxisConfig={() => setShowAxisDialog(true)}
         />
       )}
       {showEditDialog && (
@@ -144,6 +108,7 @@ export default function PlotPanel({ node }: Props) {
         <AxisConfigDialog
           panelId={node.id}
           series={node.series}
+          plotMode={node.plotMode}
           onClose={() => setShowAxisDialog(false)}
         />
       )}

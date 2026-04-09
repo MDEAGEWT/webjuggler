@@ -18,10 +18,11 @@ function fieldLabel(compositeField: string): string {
 interface Props {
   panelId: string
   series: string[]
+  plotMode: 'xy' | '3d' | string
   onClose: () => void
 }
 
-export default function AxisConfigDialog({ panelId, series, onClose }: Props) {
+export default function AxisConfigDialog({ panelId, series, plotMode, onClose }: Props) {
   const root = useLayoutStore(selectActiveRoot)
   const setAxisMapping = useLayoutStore((s) => s.setAxisMapping)
   const toggleAxisNegate = useLayoutStore((s) => s.toggleAxisNegate)
@@ -30,12 +31,13 @@ export default function AxisConfigDialog({ panelId, series, onClose }: Props) {
   const axisNegate = plotNode?.axisNegate ?? [false, false, false]
   const axisMapping = plotNode?.axisMapping ?? [0, 1, 2] as [number, number, number]
 
+  const is2D = plotMode === 'xy'
+  const axisNames = is2D ? (['X', 'Y'] as const) : (['X', 'Y', 'Z'] as const)
+
   // Local state for pending changes before applying
   const [localMapping, setLocalMapping] = useState<[number, number, number]>(
     [...axisMapping] as [number, number, number]
   )
-
-  const axisNames = ['X', 'Y', 'Z'] as const
 
   const handleSwap = (a: number, b: number) => {
     const next: [number, number, number] = [...localMapping]
@@ -62,7 +64,7 @@ export default function AxisConfigDialog({ panelId, series, onClose }: Props) {
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <div className="dialog-header">
-          <h3>3D Axis Config</h3>
+          <h3>{is2D ? 'XY' : '3D'} Axis Config</h3>
           <button onClick={onClose}>&times;</button>
         </div>
         <div className="dialog-body">
@@ -94,12 +96,16 @@ export default function AxisConfigDialog({ panelId, series, onClose }: Props) {
             <button className="axis-config-swap-btn" onClick={() => handleSwap(0, 1)}>
               Swap X&#8596;Y
             </button>
-            <button className="axis-config-swap-btn" onClick={() => handleSwap(1, 2)}>
-              Swap Y&#8596;Z
-            </button>
-            <button className="axis-config-swap-btn" onClick={() => handleSwap(0, 2)}>
-              Swap X&#8596;Z
-            </button>
+            {!is2D && (
+              <>
+                <button className="axis-config-swap-btn" onClick={() => handleSwap(1, 2)}>
+                  Swap Y&#8596;Z
+                </button>
+                <button className="axis-config-swap-btn" onClick={() => handleSwap(0, 2)}>
+                  Swap X&#8596;Z
+                </button>
+              </>
+            )}
           </div>
 
           <div className="axis-config-close-row">

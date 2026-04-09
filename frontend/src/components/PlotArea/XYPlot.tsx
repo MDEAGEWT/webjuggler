@@ -47,13 +47,28 @@ export default function XYPlot({ panelId, series }: Props) {
     const canvas = canvasRef.current
     if (!el || !canvas) return
 
-    const xField = series[0]
-    const yField = series[1]
-    if (!xField || !yField) return
+    // Build curve pairs: every 2 series = 1 XY curve
+    const curves: { xVals: Float64Array; yVals: Float64Array; timestamps: Float64Array; color: string }[] = []
+    const negX = axisNegate[0] ? -1 : 1
+    const negY = axisNegate[1] ? -1 : 1
 
-    const xData = data[xField]
-    const yData = data[yField]
-    if (!xData || !yData) return
+    for (let c = 0; c + 1 < series.length; c += 2) {
+      const xField = series[c]!
+      const yField = series[c + 1]!
+      const xData = data[xField]
+      const yData = data[yField]
+      if (!xData || !yData) continue
+      const len = Math.min(xData.values.length, yData.values.length)
+      if (len === 0) continue
+      curves.push({
+        xVals: negX === 1 ? xData.values : Float64Array.from(xData.values, v => v * -1),
+        yVals: negY === 1 ? yData.values : Float64Array.from(yData.values, v => v * -1),
+        timestamps: xData.timestamps,
+        color: PLOT_COLORS[c / 2 % PLOT_COLORS.length]!,
+      })
+    }
+
+    if (curves.length === 0) return
 
     const w = el.clientWidth
     const h = el.clientHeight
@@ -67,23 +82,16 @@ export default function XYPlot({ panelId, series }: Props) {
     if (!ctx) return
     ctx.scale(dpr, dpr)
 
-    const negX = axisNegate[0] ? -1 : 1
-    const negY = axisNegate[1] ? -1 : 1
-    const xVals = negX === 1 ? xData.values : Float64Array.from(xData.values, v => v * -1)
-    const yVals = negY === 1 ? yData.values : Float64Array.from(yData.values, v => v * -1)
-    const timestamps = xData.timestamps
-    const len = Math.min(xVals.length, yVals.length)
-    if (len === 0) return
-
-    // Compute bounds
+    // Compute bounds across ALL curves
     let xMin = Infinity, xMax = -Infinity
     let yMin = Infinity, yMax = -Infinity
-    for (let i = 0; i < len; i++) {
-      const xv = xVals[i]!, yv = yVals[i]!
-      if (xv < xMin) xMin = xv
-      if (xv > xMax) xMax = xv
-      if (yv < yMin) yMin = yv
-      if (yv > yMax) yMax = yv
+    for (const curve of curves) {
+      const len = Math.min(curve.xVals.length, curve.yVals.length)
+      for (let i = 0; i < len; i++) {
+        const xv = curve.xVals[i]!, yv = curve.yVals[i]!
+        if (Number.isFinite(xv)) { if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv }
+        if (Number.isFinite(yv)) { if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv }
+      }
     }
     // Add padding
     const xRange = (xMax - xMin) || 1
@@ -125,7 +133,7 @@ export default function XYPlot({ panelId, series }: Props) {
       ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + plotW, y); ctx.stroke()
     }
 
-    // Axis labels
+    // Axis tick labels
     ctx.fillStyle = axisTextColor
     ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif'
     ctx.textAlign = 'center'
@@ -139,12 +147,12 @@ export default function XYPlot({ panelId, series }: Props) {
       ctx.fillText(v.toFixed(2), margin.left - 6, margin.top + plotH - (i / gridCountY) * plotH + 4)
     }
 
-    // Axis names
+    // Axis names (use first curve's fields)
     ctx.fillStyle = axisLabelColor
     ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif'
     ctx.textAlign = 'center'
-    const xLabel = xField.split('/').slice(-1)[0] ?? xField
-    const yLabel = yField.split('/').slice(-1)[0] ?? yField
+    const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
+    const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
     ctx.fillText(xLabel, margin.left + plotW / 2, h - 2)
     ctx.save()
     ctx.translate(12, margin.top + plotH / 2)
@@ -152,48 +160,52 @@ export default function XYPlot({ panelId, series }: Props) {
     ctx.fillText(yLabel, 0, 0)
     ctx.restore()
 
-    // Draw trajectory line (time order)
-    ctx.strokeStyle = PLOT_COLORS[0]!
-    ctx.lineWidth = 1
-    ctx.globalAlpha = 0.4
-    ctx.beginPath()
-    for (let i = 0; i < len; i++) {
-      const px = toX(xVals[i]!), py = toY(yVals[i]!)
-      if (i === 0) ctx.moveTo(px, py)
-      else ctx.lineTo(px, py)
-    }
-    ctx.stroke()
-    ctx.globalAlpha = 1.0
+    // Draw each curve
+    for (const curve of curves) {
+      const len = Math.min(curve.xVals.length, curve.yVals.length)
 
-    // Draw points
-    ctx.fillStyle = PLOT_COLORS[0]!
-    // Downsample points for rendering if too many (keep all for line)
-    const step = len > 5000 ? Math.ceil(len / 5000) : 1
-    for (let i = 0; i < len; i += step) {
-      const px = toX(xVals[i]!), py = toY(yVals[i]!)
+      // Trajectory line
+      ctx.strokeStyle = curve.color
+      ctx.lineWidth = 1
+      ctx.globalAlpha = 0.4
       ctx.beginPath()
-      ctx.arc(px, py, 1.5, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    // Cursor highlight — find nearest point to synced timestamp
-    if (cursorTs != null && timestamps) {
-      let bestIdx = 0
-      let bestDist = Math.abs(timestamps[0]! - cursorTs)
-      for (let i = 1; i < len; i++) {
-        const d = Math.abs(timestamps[i]! - cursorTs)
-        if (d < bestDist) { bestDist = d; bestIdx = i }
+      for (let i = 0; i < len; i++) {
+        const px = toX(curve.xVals[i]!), py = toY(curve.yVals[i]!)
+        if (i === 0) ctx.moveTo(px, py)
+        else ctx.lineTo(px, py)
       }
-      const cx = toX(xVals[bestIdx]!), cy = toY(yVals[bestIdx]!)
-      ctx.strokeStyle = cursorStroke
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(cx, cy, 5, 0, Math.PI * 2)
       ctx.stroke()
-      ctx.fillStyle = PLOT_COLORS[0]!
-      ctx.beginPath()
-      ctx.arc(cx, cy, 3, 0, Math.PI * 2)
-      ctx.fill()
+      ctx.globalAlpha = 1.0
+
+      // Points (downsample if too many)
+      ctx.fillStyle = curve.color
+      const step = len > 5000 ? Math.ceil(len / 5000) : 1
+      for (let i = 0; i < len; i += step) {
+        const px = toX(curve.xVals[i]!), py = toY(curve.yVals[i]!)
+        ctx.beginPath()
+        ctx.arc(px, py, 1.5, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
+      // Cursor highlight
+      if (cursorTs != null) {
+        let bestIdx = 0
+        let bestDist = Math.abs(curve.timestamps[0]! - cursorTs)
+        for (let i = 1; i < len; i++) {
+          const d = Math.abs(curve.timestamps[i]! - cursorTs)
+          if (d < bestDist) { bestDist = d; bestIdx = i }
+        }
+        const cx = toX(curve.xVals[bestIdx]!), cy = toY(curve.yVals[bestIdx]!)
+        ctx.strokeStyle = cursorStroke
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.fillStyle = curve.color
+        ctx.beginPath()
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
   }, [series, data, cursorTs, theme, axisNegate])
 
@@ -215,6 +227,8 @@ export default function XYPlot({ panelId, series }: Props) {
     if (cursorMode !== 'time') return
     const el = containerRef.current
     if (!el) return
+
+    // Use first curve pair for mouse interaction
     const xField = series[0], yField = series[1]
     if (!xField || !yField) return
     const xData = data[xField], yData = data[yField]
@@ -228,14 +242,17 @@ export default function XYPlot({ panelId, series }: Props) {
     const plotW = el.clientWidth - margin.left - margin.right
     const plotH = el.clientHeight - margin.top - margin.bottom
 
-    const len = Math.min(xData.values.length, yData.values.length)
-    if (len === 0) return
-
+    // Compute bounds across all curves (same as draw)
     let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity
-    for (let i = 0; i < len; i++) {
-      const xv = xData.values[i]!, yv = yData.values[i]!
-      if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv
-      if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv
+    for (let c = 0; c + 1 < series.length; c += 2) {
+      const xd = data[series[c]!], yd = data[series[c + 1]!]
+      if (!xd || !yd) continue
+      const len = Math.min(xd.values.length, yd.values.length)
+      for (let i = 0; i < len; i++) {
+        const xv = xd.values[i]!, yv = yd.values[i]!
+        if (Number.isFinite(xv)) { if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv }
+        if (Number.isFinite(yv)) { if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv }
+      }
     }
     const xRange = (xMax - xMin) || 1, yRange = (yMax - yMin) || 1
     xMin -= xRange * 0.05; xMax += xRange * 0.05
@@ -244,24 +261,52 @@ export default function XYPlot({ panelId, series }: Props) {
     const toX = (v: number) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW
     const toY = (v: number) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH
 
-    // Find nearest point to mouse
-    let bestIdx = 0, bestDist = Infinity
-    for (let i = 0; i < len; i++) {
-      const dx = toX(xData.values[i]!) - mx
-      const dy = toY(yData.values[i]!) - my
-      const d = dx * dx + dy * dy
-      if (d < bestDist) { bestDist = d; bestIdx = i }
+    // Find nearest point across all curves
+    let bestTs = 0, bestDist = Infinity
+    for (let c = 0; c + 1 < series.length; c += 2) {
+      const xd = data[series[c]!], yd = data[series[c + 1]!]
+      if (!xd || !yd) continue
+      const len = Math.min(xd.values.length, yd.values.length)
+      for (let i = 0; i < len; i++) {
+        const dx = toX(xd.values[i]!) - mx
+        const dy = toY(yd.values[i]!) - my
+        const d = dx * dx + dy * dy
+        if (d < bestDist) { bestDist = d; bestTs = xd.timestamps[i]! }
+      }
     }
-    const ts = xData.timestamps[bestIdx]
-    if (ts != null) setCursor(ts)
+    if (bestTs != null) setCursor(bestTs)
   }, [series, data, setCursor, cursorMode])
 
   const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
   const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
 
+  // Build legend entries (one per curve pair)
+  const legendEntries: { color: string; label: string }[] = []
+  for (let c = 0; c + 1 < series.length; c += 2) {
+    // Strip fileId prefix (e.g. "uuid:topic/field" → "topic/field")
+    const stripFileId = (s: string) => { const i = s.indexOf(':'); return i >= 0 ? s.substring(i + 1) : s }
+    const xPath = stripFileId(series[c]!)   // e.g. "vehicle_local_position/x"
+    const yPath = stripFileId(series[c + 1]!)
+    const xName = xPath.split('/').slice(-1)[0] ?? xPath  // "x"
+    const yName = yPath.split('/').slice(-1)[0] ?? yPath  // "y"
+    const topic = xPath.split('/').slice(0, -1).join('/')  // "vehicle_local_position"
+    const label = topic ? `${topic} (${xName}, ${yName})` : `${xName}, ${yName}`
+    legendEntries.push({ color: PLOT_COLORS[c / 2 % PLOT_COLORS.length]!, label })
+  }
+
   return (
     <div ref={containerRef} className="xy-plot" onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      {legendEntries.length > 0 && (
+        <div className="xy-legend">
+          {legendEntries.map((entry, i) => (
+            <div key={i} className="xy-legend-item">
+              <span className="xy-legend-color" style={{ background: entry.color }} />
+              <span className="xy-legend-label">{entry.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <AxisControls panelId={panelId} axisLabels={[xLabel, yLabel]} axisNegate={[!!axisNegate[0], !!axisNegate[1]]} />
     </div>
   )

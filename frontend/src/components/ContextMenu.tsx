@@ -6,13 +6,18 @@ interface Props {
   x: number
   y: number
   onClose: () => void
+  seriesCount: number
+  plotMode: string
   onEditCurves?: () => void
+  onAxisConfig?: () => void
 }
 
-export default function ContextMenu({ panelId, x, y, onClose, onEditCurves }: Props) {
+export default function ContextMenu({ panelId, x, y, onClose, seriesCount, plotMode, onEditCurves, onAxisConfig }: Props) {
   const splitPanel = useLayoutStore((s) => s.splitPanel)
   const clearSeries = useLayoutStore((s) => s.clearSeries)
   const closePanel = useLayoutStore((s) => s.closePanel)
+  const setPlotMode = useLayoutStore((s) => s.setPlotMode)
+  const setDisplayMode = useLayoutStore((s) => s.setDisplayMode)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,6 +60,60 @@ export default function ContextMenu({ panelId, x, y, onClose, onEditCurves }: Pr
       >
         Split Horizontal <kbd>H</kbd>
       </div>
+      {seriesCount > 0 && (
+        <>
+          <div className="context-menu-separator" />
+          <div className="context-menu-item context-menu-has-submenu">
+            <span>View Mode</span><span className="context-menu-arrow" />
+            <div className="context-menu-submenu">
+              <div
+                className={`context-menu-item${plotMode === 'timeseries' ? ' context-menu-item-active' : ''}`}
+                onClick={() => handle(() => setPlotMode(panelId, 'timeseries'))}
+              >
+                Timeseries
+              </div>
+              {seriesCount >= 2 && (
+                <div
+                  className={`context-menu-item${plotMode === 'xy' ? ' context-menu-item-active' : ''}`}
+                  onClick={() => handle(() => setPlotMode(panelId, 'xy'))}
+                >
+                  XY Plot
+                </div>
+              )}
+              {seriesCount >= 3 && (
+                <div
+                  className={`context-menu-item${plotMode === '3d' ? ' context-menu-item-active' : ''}`}
+                  onClick={() => handle(() => setPlotMode(panelId, '3d'))}
+                >
+                  3D Plot
+                </div>
+              )}
+              {seriesCount >= 4 && (
+                <div
+                  className={`context-menu-item${plotMode === 'attitude' ? ' context-menu-item-active' : ''}`}
+                  onClick={() => handle(() => setPlotMode(panelId, 'attitude'))}
+                >
+                  Attitude
+                </div>
+              )}
+              <div
+                className="context-menu-item"
+                onClick={() => handle(() => setDisplayMode(panelId, 'compass'))}
+              >
+                Compass
+              </div>
+            </div>
+          </div>
+          {(plotMode === 'xy' || plotMode === '3d') && onAxisConfig && (
+            <div
+              className="context-menu-item"
+              onClick={() => handle(() => onAxisConfig())}
+            >
+              Axis Config...
+            </div>
+          )}
+        </>
+      )}
       <div className="context-menu-separator" />
       {onEditCurves && (
         <div

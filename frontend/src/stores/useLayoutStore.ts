@@ -198,17 +198,7 @@ export const useLayoutStore = create<LayoutState>()(
             tabs: updateActiveTabRoot(state.tabs, state.activeTabId, (root) =>
               findAndUpdate(root, id, (node) => {
                 const newSeries = [...new Set([...node.series, ...fields])]
-                let plotMode = node.plotMode
-                if (node.series.length === 0 && fields.length === 4) {
-                  plotMode = 'attitude'
-                } else if (node.series.length === 0 && fields.length === 2) {
-                  plotMode = 'xy'
-                } else if (node.series.length === 0 && fields.length >= 3) {
-                  plotMode = '3d'
-                } else if (node.series.length === 0 && fields.length === 1) {
-                  plotMode = 'timeseries'
-                }
-                return { ...node, series: newSeries, plotMode }
+                return { ...node, series: newSeries }
               }),
             ),
           }
