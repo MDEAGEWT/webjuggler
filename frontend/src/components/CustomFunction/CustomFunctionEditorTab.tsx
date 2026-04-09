@@ -110,24 +110,28 @@ export const CustomFunctionEditorTab: React.FC<Props> = ({ editingId, tabId }) =
 
     if (!previewData) return
 
-    const timestamps = Array.from(previewData.timestamps)
-    const values = Array.from(previewData.values)
+    const timestamps = Array.from(previewData.timestamps) as number[]
+    // uPlot needs null for gaps, not NaN
+    const values = Array.from(previewData.values).map((v) =>
+      Number.isFinite(v) ? v : null,
+    ) as (number | null)[]
 
     const opts: uPlot.Options = {
       width: previewRef.current.clientWidth || 300,
-      height: 150,
+      height: 180,
       cursor: { show: false },
       legend: { show: false },
       scales: {
         x: { time: false },
+        y: { auto: true },
       },
       axes: [
-        { stroke: '#666', grid: { stroke: '#1a1a2e' }, ticks: { stroke: '#333' }, font: '10px sans-serif', size: 30 },
-        { stroke: '#666', grid: { stroke: '#1a1a2e' }, ticks: { stroke: '#333' }, font: '10px sans-serif', size: 40 },
+        { stroke: '#666', grid: { stroke: '#1a1a2e', width: 1 }, ticks: { stroke: '#333' }, font: '10px sans-serif', size: 30 },
+        { stroke: '#666', grid: { stroke: '#1a1a2e', width: 1 }, ticks: { stroke: '#333' }, font: '10px sans-serif', size: 50, gap: 4 },
       ],
       series: [
         {},
-        { stroke: '#4fc3f7', width: 1 },
+        { stroke: '#4fc3f7', width: 1.5, spanGaps: true },
       ],
     }
 
