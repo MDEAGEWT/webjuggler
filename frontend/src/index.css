@@ -1289,3 +1289,112 @@ body {
   color: var(--text-secondary);
   padding: 4px 8px;
 }
+
+/* ---- Custom Function Editor ---- */
+.fn-editor-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 10px 0 4px;
+}
+.fn-editor-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.fn-editor-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  min-height: 32px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+}
+.fn-editor-additional {
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 48px;
+  gap: 2px;
+}
+.fn-additional-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.fn-additional-item button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+}
+.function-library-list {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.function-library-item {
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.function-library-item:hover {
+  background: var(--bg-hover);
+}
+.function-library-item.selected {
+  background: var(--bg-selected);
+  border-left: 2px solid var(--accent);
+}
+.fn-editor-textarea {
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.fn-editor-error {
+  color: var(--error);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.fn-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.fn-editor-actions button {
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-btn);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+}
+.fn-editor-actions button:hover {
+  background: var(--bg-btn-hover);
+}
+.fn-editor-submit {
+  background: var(--accent) !important;
+  color: var(--bg-primary) !important;
+  border: none !important;
+}
