@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLayoutStore } from '../stores/useLayoutStore'
+import { useLayoutStore, selectActiveRoot } from '../stores/useLayoutStore'
 import type { LayoutNode, PlotNode } from '../types'
 
 function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
@@ -22,7 +22,7 @@ interface Props {
 }
 
 export default function AxisConfigDialog({ panelId, series, onClose }: Props) {
-  const root = useLayoutStore((s) => s.root)
+  const root = useLayoutStore(selectActiveRoot)
   const setAxisMapping = useLayoutStore((s) => s.setAxisMapping)
   const toggleAxisNegate = useLayoutStore((s) => s.toggleAxisNegate)
 

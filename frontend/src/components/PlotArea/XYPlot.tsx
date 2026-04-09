@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
-import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useLayoutStore, selectActiveRoot } from '../../stores/useLayoutStore'
 import { useSettingsStore } from '../../stores/useSettingsStore'
 import { PLOT_COLORS } from '../../constants'
 import AxisControls from './AxisControls'
@@ -28,10 +28,11 @@ export default function XYPlot({ panelId, series }: Props) {
   const cursorTs = useCursorStore((s) => s.timestamp)
   const setCursor = useCursorStore((s) => s.setCursor)
   const theme = useThemeStore((s) => s.theme)
-  const axisNegate = useLayoutStore((s) => {
-    const plot = findPlotNode(s.root, panelId)
+  const root = useLayoutStore(selectActiveRoot)
+  const axisNegate = (() => {
+    const plot = findPlotNode(root, panelId)
     return plot?.axisNegate ?? DEFAULT_NEGATE
-  })
+  })()
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {

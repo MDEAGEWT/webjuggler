@@ -4,7 +4,7 @@ import 'uplot/dist/uPlot.min.css'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useZoomStore } from '../../stores/useZoomStore'
-import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useLayoutStore, selectActiveRoot } from '../../stores/useLayoutStore'
 import { useFileStore } from '../../stores/useFileStore'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { useSettingsStore } from '../../stores/useSettingsStore'
@@ -72,14 +72,15 @@ export default function TimeSeriesPlot({ panelId, series }: Props) {
   const setCursor = useCursorStore((s) => s.setCursor)
   const removeSeries = useLayoutStore((s) => s.removeSeries)
   const colorOverrides = useLayoutStore((s) => s.colorOverrides)
-  const lineStyle = useLayoutStore((s) => {
-    const plot = findPlotNode(s.root, panelId)
+  const root = useLayoutStore(selectActiveRoot)
+  const lineStyle = (() => {
+    const plot = findPlotNode(root, panelId)
     return plot?.lineStyle ?? DEFAULT_LINE_STYLE
-  })
-  const lineWidth = useLayoutStore((s) => {
-    const plot = findPlotNode(s.root, panelId)
+  })()
+  const lineWidth = (() => {
+    const plot = findPlotNode(root, panelId)
     return plot?.lineWidth ?? DEFAULT_LINE_WIDTH
-  })
+  })()
   const theme = useThemeStore((s) => s.theme)
   const cursorMode = useSettingsStore((s) => s.cursorMode)
 

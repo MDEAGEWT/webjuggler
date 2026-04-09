@@ -4,7 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
-import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useLayoutStore, selectActiveRoot } from '../../stores/useLayoutStore'
 import AxisControls from './AxisControls'
 import type { LayoutNode, PlotNode } from '../../types'
 
@@ -73,14 +73,15 @@ export default function ThreeDPlot({ panelId, series }: Props) {
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const theme = useThemeStore((s) => s.theme)
-  const axisNegate = useLayoutStore((s) => {
-    const plot = findPlotNode(s.root, panelId)
+  const root = useLayoutStore(selectActiveRoot)
+  const axisNegate = (() => {
+    const plot = findPlotNode(root, panelId)
     return plot?.axisNegate ?? DEFAULT_NEGATE
-  })
-  const axisMapping = useLayoutStore((s) => {
-    const plot = findPlotNode(s.root, panelId)
+  })()
+  const axisMapping = (() => {
+    const plot = findPlotNode(root, panelId)
     return plot?.axisMapping ?? DEFAULT_MAPPING
-  })
+  })()
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {

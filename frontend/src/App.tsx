@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useAuthStore } from './stores/useAuthStore'
-import { useLayoutStore } from './stores/useLayoutStore'
+import { useLayoutStore, selectActiveRoot } from './stores/useLayoutStore'
 import { useThemeStore } from './stores/useThemeStore'
 import { usePlaybackStore } from './stores/usePlaybackStore'
 import LoginPage from './components/LoginPage'
@@ -10,10 +10,11 @@ import SplitLayout from './components/PlotArea/SplitLayout'
 import PlaybackBar from './components/PlaybackBar'
 import RightSidebar from './components/RightSidebar'
 import ToastContainer from './components/ToastContainer'
+import TabBar from './components/TabBar'
 
 export default function App() {
   const token = useAuthStore((s) => s.token)
-  const root = useLayoutStore((s) => s.root)
+  const root = useLayoutStore(selectActiveRoot)
 
   // Apply persisted theme on mount
   useEffect(() => {
@@ -71,7 +72,10 @@ export default function App() {
       <div className="workspace">
         <Sidebar />
         <div className="plot-area">
-          <SplitLayout node={root} />
+          <TabBar />
+          <div className="tab-content">
+            <SplitLayout node={root} />
+          </div>
         </div>
         <RightSidebar />
       </div>

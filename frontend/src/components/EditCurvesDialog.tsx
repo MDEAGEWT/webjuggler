@@ -1,5 +1,5 @@
 import { PLOT_COLORS } from '../constants'
-import { useLayoutStore } from '../stores/useLayoutStore'
+import { useLayoutStore, selectActiveRoot } from '../stores/useLayoutStore'
 import { useFileStore } from '../stores/useFileStore'
 import type { LayoutNode, PlotNode } from '../types'
 
@@ -52,7 +52,7 @@ export default function EditCurvesDialog({ panelId, series, onClose }: Props) {
   const setLineStyle = useLayoutStore((s) => s.setLineStyle)
   const setLineWidth = useLayoutStore((s) => s.setLineWidth)
 
-  const root = useLayoutStore((s) => s.root)
+  const root = useLayoutStore(selectActiveRoot)
   const plotNode = findPlotNode(root, panelId)
   const lineStyle = plotNode?.lineStyle ?? 'lines'
   const lineWidth = plotNode?.lineWidth ?? 1.5
