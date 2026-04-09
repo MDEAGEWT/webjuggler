@@ -55,3 +55,13 @@ export interface CustomFunctionDef {
   additionalInputs: string[]   // ["fileId:topic/field", ...]
   libraryFunction?: string
 }
+
+export interface TabDef {
+  id: string
+  name: string
+  type: 'plot' | 'editor'
+  root: LayoutNode
+  undoStack: LayoutNode[]
+  redoStack: LayoutNode[]
+  editingFunctionId?: string
+}
