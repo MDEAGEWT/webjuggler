@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useFileStore } from '../../stores/useFileStore'
 import { useDataStore } from '../../stores/useDataStore'
 import TopicTree from './TopicTree'
+import { CustomSeriesSection } from './CustomSeriesSection'
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
@@ -10,6 +11,8 @@ export default function Sidebar() {
   const removeFile = useFileStore((s) => s.removeFile)
   const clearFileData = useDataStore((s) => s.clearFileData)
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set())
+  const [_editorOpen, setEditorOpen] = useState(false)
+  const [_editingId, setEditingId] = useState<string | null>(null)
 
   function toggleFileCollapse(fileId: string) {
     setCollapsedFiles((prev) => {
@@ -97,6 +100,10 @@ export default function Sidebar() {
           )
         })
       )}
+      <CustomSeriesSection
+        onAdd={() => { setEditingId(null); setEditorOpen(true) }}
+        onEdit={(id) => { setEditingId(id); setEditorOpen(true) }}
+      />
     </div>
   )
 }

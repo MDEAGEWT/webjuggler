@@ -1237,3 +1237,55 @@ body {
 .axis-config-close-btn:hover {
   background: var(--bg-btn-hover);
 }
+
+/* ---- Custom Series Section ---- */
+.custom-series-section {
+  border-top: 1px solid var(--border);
+  padding: 8px;
+}
+.custom-series-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.custom-series-buttons {
+  display: flex;
+  gap: 4px;
+}
+.custom-series-buttons button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.custom-series-buttons button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.custom-series-item {
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: grab;
+  border-radius: 3px;
+  user-select: none;
+  color: var(--text-primary);
+}
+.custom-series-item:hover {
+  background: var(--bg-hover);
+}
+.custom-series-item.selected {
+  background: var(--bg-selected);
+  border: 1px solid var(--accent);
+}
+.custom-series-empty {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+}
