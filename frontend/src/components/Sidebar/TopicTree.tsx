@@ -11,22 +11,55 @@ interface Props {
 export default function TopicTree({ topics, fileId, filter }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set())
+  const [lastSelected, setLastSelected] = useState<string | null>(null)
   const lowerFilter = filter.toLowerCase()
+
+  // Flat list of all visible field paths (for range selection)
+  function getAllVisiblePaths(): string[] {
+    const paths: string[] = []
+    for (const topic of topics) {
+      if (expanded[topic.name]) {
+        for (const field of topic.fields) {
+          paths.push(`${fileId}:${topic.name}${field}`)
+        }
+      }
+    }
+    return paths
+  }
 
   function toggleExpand(name: string) {
     setExpanded((prev) => ({ ...prev, [name]: !prev[name] }))
   }
 
-  function toggleSelect(fieldPath: string, ctrlKey: boolean) {
-    setSelectedFields((prev) => {
-      const next = new Set(ctrlKey ? prev : [])
-      if (next.has(fieldPath)) {
-        next.delete(fieldPath)
-      } else {
-        next.add(fieldPath)
+  function handleSelect(fieldPath: string, mode: 'single' | 'toggle' | 'range') {
+    if (mode === 'range' && lastSelected) {
+      // Select all between lastSelected and fieldPath
+      const allPaths = getAllVisiblePaths()
+      const idxA = allPaths.indexOf(lastSelected)
+      const idxB = allPaths.indexOf(fieldPath)
+      if (idxA !== -1 && idxB !== -1) {
+        const from = Math.min(idxA, idxB)
+        const to = Math.max(idxA, idxB)
+        setSelectedFields((prev) => {
+          const next = new Set(prev)
+          for (let i = from; i <= to; i++) {
+            next.add(allPaths[i]!)
+          }
+          return next
+        })
       }
-      return next
-    })
+    } else if (mode === 'toggle') {
+      setSelectedFields((prev) => {
+        const next = new Set(prev)
+        if (next.has(fieldPath)) next.delete(fieldPath)
+        else next.add(fieldPath)
+        return next
+      })
+      setLastSelected(fieldPath)
+    } else {
+      setSelectedFields(new Set([fieldPath]))
+      setLastSelected(fieldPath)
+    }
   }
 
   const filtered = topics
@@ -73,8 +106,8 @@ export default function TopicTree({ topics, fileId, filter }: Props) {
                       fieldName={field}
                       selected={selectedFields.has(fullPath)}
                       allSelected={Array.from(selectedFields)}
-                      onSelect={(ctrlKey) =>
-                        toggleSelect(fullPath, ctrlKey)
+                      onSelect={(mode) =>
+                        handleSelect(fullPath, mode)
                       }
                     />
                   )

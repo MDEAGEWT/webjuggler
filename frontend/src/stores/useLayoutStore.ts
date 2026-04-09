@@ -389,22 +389,32 @@ export const useLayoutStore = create<LayoutState>()(
 
       closeTab: (tabId) =>
         set((state) => {
-          const plotTabs = state.tabs.filter((t) => t.type === 'plot')
-          // Can't close the last plot tab
           const tab = state.tabs.find((t) => t.id === tabId)
-          if (tab?.type === 'plot' && plotTabs.length <= 1) return state
+          if (!tab) return state
 
-          const newTabs = state.tabs.filter((t) => t.id !== tabId)
-          if (newTabs.length === 0) return state
+          const remaining = state.tabs.filter((t) => t.id !== tabId)
+          const plotTabs = remaining.filter((t) => t.type === 'plot')
+
+          // Last plot tab → reset to fresh empty tab
+          if (tab.type === 'plot' && plotTabs.length === 0) {
+            const freshTab: TabDef = {
+              id: `tab-${Date.now()}`,
+              name: 'Tab 1',
+              type: 'plot',
+              root: makePlotNode(),
+              undoStack: [],
+              redoStack: [],
+            }
+            return { tabs: [freshTab, ...remaining.filter((t) => t.type !== 'plot')], activeTabId: freshTab.id, focusedPanelId: null }
+          }
 
           let newActiveId = state.activeTabId
           if (state.activeTabId === tabId) {
-            // Switch to the previous tab (or first if none before)
             const idx = state.tabs.findIndex((t) => t.id === tabId)
             newActiveId = (state.tabs[idx - 1] ?? state.tabs[idx + 1])!.id
           }
 
-          return { tabs: newTabs, activeTabId: newActiveId, focusedPanelId: null }
+          return { tabs: remaining, activeTabId: newActiveId, focusedPanelId: null }
         }),
 
       setActiveTab: (tabId) => set({ activeTabId: tabId, focusedPanelId: null }),

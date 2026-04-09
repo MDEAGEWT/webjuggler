@@ -36,8 +36,6 @@ export default function TabBar() {
     if (e.key === 'Escape') setEditingTabId(null)
   }, [handleRenameCommit])
 
-  const plotTabCount = tabs.filter((t) => t.type === 'plot').length
-
   return (
     <div className="tab-bar">
       {tabs.map((tab) => (
@@ -60,17 +58,15 @@ export default function TabBar() {
           ) : (
             <span className="tab-label">{tab.name}</span>
           )}
-          {!(tab.type === 'plot' && plotTabCount <= 1) && (
-            <span
-              className="tab-close"
-              onClick={(e) => {
-                e.stopPropagation()
-                closeTab(tab.id)
-              }}
+          <span
+            className="tab-close"
+            onClick={(e) => {
+              e.stopPropagation()
+              closeTab(tab.id)
+            }}
             >
               &times;
             </span>
-          )}
         </div>
       ))}
       <div className="tab-add" onClick={() => addTab('plot')}>

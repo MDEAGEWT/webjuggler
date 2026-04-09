@@ -1525,18 +1525,22 @@ body {
   border-radius: 4px 4px 0 0;
 }
 .tab-close {
-  font-size: 10px;
-  color: var(--text-muted);
+  font-size: 14px;
+  color: var(--text-secondary);
   cursor: pointer;
+  padding: 0 2px;
+  border-radius: 3px;
+  line-height: 1;
 }
 .tab-close:hover {
   color: var(--text-primary);
+  background: var(--bg-hover);
 }
 .tab-add {
   padding: 4px 8px;
   color: var(--text-muted);
   cursor: pointer;
-  margin-left: auto;
+  margin-left: 2px;
   font-size: 14px;
 }
 .tab-add:hover {

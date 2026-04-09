@@ -6,7 +6,7 @@ interface Props {
   fieldName: string
   selected: boolean
   allSelected: string[]
-  onSelect: (ctrlKey: boolean) => void
+  onSelect: (mode: 'single' | 'toggle' | 'range') => void
 }
 
 /** Binary search for the index of the nearest timestamp */
@@ -48,7 +48,9 @@ export default function FieldItem({
   }
 
   function handleClick(e: React.MouseEvent) {
-    onSelect(e.ctrlKey || e.metaKey)
+    if (e.shiftKey) onSelect('range')
+    else if (e.ctrlKey || e.metaKey) onSelect('toggle')
+    else onSelect('single')
   }
 
   let displayValue = ''
