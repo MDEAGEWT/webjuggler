@@ -9,6 +9,9 @@ function getSeriesColor(index: number): string {
 
 /** Extract a display label — show topic/field, with file prefix if multi-file */
 function displayName(compositeField: string): string {
+  if (compositeField.startsWith('custom:')) {
+    return '[fn] ' + compositeField.substring(7)
+  }
   const files = useFileStore.getState().files
   const colonIdx = compositeField.indexOf(':')
   if (colonIdx === -1) {

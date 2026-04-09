@@ -52,7 +52,8 @@ export default function PlotPanel({ node }: Props) {
         const fields = JSON.parse(raw) as string[]
         addSeries(node.id, fields)
         // Fields now contain fileId prefix, fetchFields parses it
-        fetchFields(fields)
+        const toFetch = fields.filter((f) => !f.startsWith('custom:'))
+        if (toFetch.length > 0) fetchFields(toFetch)
       } catch {
         // ignore malformed data
       }

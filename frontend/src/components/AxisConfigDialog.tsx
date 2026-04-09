@@ -8,6 +8,9 @@ function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
 }
 
 function fieldLabel(compositeField: string): string {
+  if (compositeField.startsWith('custom:')) {
+    return '[fn] ' + compositeField.substring(7)
+  }
   const colonIdx = compositeField.indexOf(':')
   return colonIdx === -1 ? compositeField : compositeField.substring(colonIdx + 1)
 }

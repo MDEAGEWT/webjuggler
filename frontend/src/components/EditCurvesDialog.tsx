@@ -8,6 +8,9 @@ function getSeriesColor(index: number): string {
 }
 
 function seriesLabel(compositeField: string): string {
+  if (compositeField.startsWith('custom:')) {
+    return '[fn] ' + compositeField.substring(7)
+  }
   const files = useFileStore.getState().files
   const colonIdx = compositeField.indexOf(':')
   if (colonIdx === -1) {

@@ -22,6 +22,9 @@ function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
 
 /** Extract a short display label from composite "fileId:topic/field" path */
 function seriesLabel(compositeField: string): string {
+  if (compositeField.startsWith('custom:')) {
+    return '[fn] ' + compositeField.substring(7)
+  }
   const files = useFileStore.getState().files
   const colonIdx = compositeField.indexOf(':')
   if (colonIdx === -1) {
