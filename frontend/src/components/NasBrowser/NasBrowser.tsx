@@ -16,6 +16,7 @@ interface TreeNode {
 export default function NasBrowser({ tabId: _tabId }: Props) {
   const addFile = useFileStore((s) => s.addFile)
   const [tree, setTree] = useState<Record<string, TreeNode>>({})
+  const [browseError, setBrowseError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [lastSelected, setLastSelected] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -26,13 +27,16 @@ export default function NasBrowser({ tabId: _tabId }: Props) {
 
   const loadDir = useCallback(async (path: string) => {
     try {
+      setBrowseError(null)
       const res = await browse(path)
       setTree((prev) => ({
         ...prev,
         [path]: { entries: res.entries, expanded: true, summary: res.summary },
       }))
-    } catch {
-      useToastStore.getState().addToast('Failed to browse NAS', 'error')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to browse NAS'
+      setBrowseError(msg)
+      useToastStore.getState().addToast(msg, 'error')
     }
   }, [])
 
@@ -47,14 +51,39 @@ export default function NasBrowser({ tabId: _tabId }: Props) {
     }
   }, [tree, loadDir])
 
+  // Collect all visible .ulg file paths for range selection
+  const getVisibleFiles = useCallback((): string[] => {
+    const files: string[] = []
+    const collect = (parentPath: string) => {
+      const node = tree[parentPath]
+      if (!node || !node.expanded) return
+      for (const entry of node.entries) {
+        const fullPath = parentPath ? `${parentPath}/${entry.name}` : entry.name
+        if (entry.type === 'dir') {
+          collect(fullPath)
+        } else if (entry.name.endsWith('.ulg')) {
+          files.push(fullPath)
+        }
+      }
+    }
+    collect('')
+    return files
+  }, [tree])
+
   const handleSelect = useCallback((filePath: string, e: React.MouseEvent) => {
     if (e.shiftKey && lastSelected) {
-      // Range select: add this file
-      setSelected((prev) => {
-        const next = new Set(prev)
-        next.add(filePath)
-        return next
-      })
+      const allFiles = getVisibleFiles()
+      const idxA = allFiles.indexOf(lastSelected)
+      const idxB = allFiles.indexOf(filePath)
+      if (idxA !== -1 && idxB !== -1) {
+        const from = Math.min(idxA, idxB)
+        const to = Math.max(idxA, idxB)
+        setSelected((prev) => {
+          const next = new Set(prev)
+          for (let i = from; i <= to; i++) next.add(allFiles[i]!)
+          return next
+        })
+      }
     } else if (e.ctrlKey || e.metaKey) {
       setSelected((prev) => {
         const next = new Set(prev)
@@ -67,7 +96,7 @@ export default function NasBrowser({ tabId: _tabId }: Props) {
       setSelected(new Set([filePath]))
       setLastSelected(filePath)
     }
-  }, [lastSelected])
+  }, [lastSelected, getVisibleFiles])
 
   const handleOpen = useCallback(async () => {
     if (selected.size === 0) return
@@ -81,7 +110,7 @@ export default function NasBrowser({ tabId: _tabId }: Props) {
           successCount++
         }
         if (f.error) {
-          useToastStore.getState().addToast(`Failed: ${f.filename}`, 'error')
+          useToastStore.getState().addToast(`Failed: ${f.filename} — ${f.error}`, 'error')
         }
       }
       if (successCount > 0) {
@@ -149,7 +178,9 @@ export default function NasBrowser({ tabId: _tabId }: Props) {
       <div className="nas-browser-content">
         <h3 style={{ color: 'var(--text-primary)', margin: '0 0 12px' }}>NAS Flight Logs</h3>
         <div className="nas-tree">
-          {Object.keys(tree).length === 0 ? (
+          {browseError ? (
+            <div className="nas-empty" style={{ color: 'var(--error)' }}>{browseError}</div>
+          ) : Object.keys(tree).length === 0 ? (
             <div className="nas-empty">Loading...</div>
           ) : (
             renderEntries('', 0)

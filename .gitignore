@@ -36,3 +36,7 @@ backend/test-uploads/
 
 # Lock files
 skills-lock.json
+
+# Sensitive config
+NAS.md
+.env
