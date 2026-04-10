@@ -3,6 +3,8 @@ import { usePlaybackStore } from '../stores/usePlaybackStore'
 import { useCursorStore } from '../stores/useCursorStore'
 import { useDataStore } from '../stores/useDataStore'
 import { useZoomStore } from '../stores/useZoomStore'
+import { useSettingsStore } from '../stores/useSettingsStore'
+import { useFileStore } from '../stores/useFileStore'
 
 const SPEED_OPTIONS = [0.5, 1, 2, 5, 10]
 
@@ -14,6 +16,10 @@ export default function PlaybackBar() {
   const xMin = useZoomStore((s) => s.xMin)
   const xMax = useZoomStore((s) => s.xMax)
   const data = useDataStore((s) => s.adjustedData)
+  const timeMode = useSettingsStore((s) => s.timeMode)
+  const setTimeMode = useSettingsStore((s) => s.setTimeMode)
+  const files = useFileStore((s) => s.files)
+  const gpsAvailable = files.length > 0 && files.every((f) => f.gpsOffsetUs != null)
 
   const lastFrameRef = useRef<number | null>(null)
   const rafRef = useRef<number>(0)
@@ -155,6 +161,16 @@ export default function PlaybackBar() {
             {s}x
           </option>
         ))}
+      </select>
+      <select
+        className="playback-time-mode"
+        value={timeMode}
+        onChange={(e) => setTimeMode(e.target.value as 'boot' | 'gps')}
+      >
+        <option value="boot">Boot Time</option>
+        <option value="gps" disabled={!gpsAvailable}>
+          GPS Time{!gpsAvailable ? ' (no data)' : ''}
+        </option>
       </select>
     </div>
   )

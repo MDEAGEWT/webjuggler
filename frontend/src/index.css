@@ -1573,3 +1573,17 @@ body {
   width: 100%;
   max-width: 520px;
 }
+
+/* ---- Time Mode Dropdown ---- */
+.playback-time-mode {
+  background: var(--bg-btn);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 11px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+.playback-time-mode option:disabled {
+  color: var(--text-muted);
+}
