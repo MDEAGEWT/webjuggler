@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuthStore } from './stores/useAuthStore'
+import { useConfigStore } from './stores/useConfigStore'
 import { useLayoutStore, selectActiveRoot } from './stores/useLayoutStore'
 import { useFileStore } from './stores/useFileStore'
 import { useThemeStore } from './stores/useThemeStore'
@@ -18,6 +19,7 @@ import { CustomFunctionEditorTab } from './components/CustomFunction/CustomFunct
 
 export default function App() {
   const token = useAuthStore((s) => s.token)
+  const { mode, loaded } = useConfigStore()
   const root = useLayoutStore(selectActiveRoot)
   const activeTab = useLayoutStore((s) =>
     s.tabs.find((t) => t.id === s.activeTabId)
@@ -26,6 +28,10 @@ export default function App() {
   // Apply persisted theme on mount
   useEffect(() => {
     document.documentElement.dataset.theme = useThemeStore.getState().theme
+  }, [])
+
+  useEffect(() => {
+    useConfigStore.getState().loadConfig()
   }, [])
 
   useEffect(() => {
@@ -113,7 +119,9 @@ export default function App() {
     }
   }, [addFile])
 
-  if (!token) return <LoginPage />
+  if (!loaded) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Loading...</div>
+
+  if (mode === 'nas' && !token) return <LoginPage hideRegister />
 
   return (
     <div

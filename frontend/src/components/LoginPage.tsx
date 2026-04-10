@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { login, register } from '../api/auth'
 import { useAuthStore } from '../stores/useAuthStore'
 
-export default function LoginPage() {
+interface Props {
+  hideRegister?: boolean
+}
+
+export default function LoginPage({ hideRegister }: Props) {
   const setAuth = useAuthStore((s) => s.setAuth)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -62,13 +66,15 @@ export default function LoginPage() {
           >
             Log In
           </button>
-          <button
-            className="login-btn login-btn-secondary"
-            onClick={() => handleSubmit('register')}
-            disabled={loading}
-          >
-            Register
-          </button>
+          {!hideRegister && (
+            <button
+              className="login-btn login-btn-secondary"
+              onClick={() => handleSubmit('register')}
+              disabled={loading}
+            >
+              Register
+            </button>
+          )}
         </div>
       </div>
     </div>

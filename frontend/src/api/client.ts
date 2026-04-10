@@ -30,9 +30,14 @@ export async function apiFetch<T>(
   })
 
   if (res.status === 401) {
+    // In SOLO mode, 401 should not happen — just warn
+    const { useConfigStore } = await import('../stores/useConfigStore')
+    if (useConfigStore.getState().mode === 'solo') {
+      console.warn('Unexpected 401 in SOLO mode')
+      throw new ApiError(401, 'Unauthorized')
+    }
     localStorage.removeItem('token')
     localStorage.removeItem('username')
-    // Lazy import to avoid circular dependency
     const { useToastStore } = await import('../stores/useToastStore')
     useToastStore.getState().addToast('Session expired, please login again', 'error')
     window.location.reload()
