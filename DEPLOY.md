@@ -57,6 +57,85 @@ The NAS path must be mounted before starting the server:
 sudo mount -t nfs <NAS_IP>:/mnt/Storage/nc_storage /mnt/nas_storage
 ```
 
+## Production Deployment
+
+### Build
+
+```bash
+# Backend: build fat JAR
+cd backend && ./gradlew bootJar
+# Output: backend/build/libs/webjuggler-*.jar
+
+# Frontend: build static files
+cd frontend && npm run build
+# Output: frontend/dist/
+```
+
+### Run
+
+```bash
+# Serve frontend static files from backend
+# Copy frontend build to backend's static directory:
+cp -r frontend/dist/* backend/src/main/resources/static/
+
+# Or rebuild backend after copying:
+cd backend && ./gradlew bootJar
+
+# Run the JAR:
+java -jar build/libs/webjuggler-*.jar \
+  --webjuggler.mode=nas \
+  --webjuggler.nextcloud.url=https://your-nextcloud.example.com \
+  --webjuggler.nas.path=/mnt/nas_storage/Share/flight_logs \
+  --webjuggler.jwt.secret=your-secure-random-key-at-least-256-bits
+```
+
+Single port (8080) serves both API and frontend.
+
+### Systemd Service (optional)
+
+```ini
+# /etc/systemd/system/webjuggler.service
+[Unit]
+Description=WebJuggler
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/webjuggler
+ExecStart=/usr/bin/java -jar webjuggler.jar \
+  --webjuggler.mode=nas \
+  --webjuggler.nextcloud.url=https://your-nextcloud.example.com \
+  --webjuggler.nas.path=/mnt/nas_storage/Share/flight_logs \
+  --webjuggler.jwt.secret=change-me
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now webjuggler
+```
+
+### Reverse Proxy (Nginx)
+
+```nginx
+server {
+    listen 80;
+    server_name webjuggler.example.com;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        client_max_body_size 500M;
+    }
+}
+```
+
+---
+
 ### Custom Java Path
 
 If system Java is not 21:
