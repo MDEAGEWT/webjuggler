@@ -1,5 +1,6 @@
 package com.webjuggler.auth;
 
+import com.webjuggler.config.WebJugglerProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,17 +15,24 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final WebJugglerProperties properties;
 
     public AuthController(UserRepository userRepository,
                           PasswordEncoder passwordEncoder,
-                          JwtService jwtService) {
+                          JwtService jwtService,
+                          WebJugglerProperties properties) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.properties = properties;
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+        if ("nas".equals(properties.mode())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
         String username = body.get("username");
         String password = body.get("password");
 
@@ -52,6 +60,10 @@ public class AuthController {
         String username = body.get("username");
         String password = body.get("password");
 
+        if ("nas".equals(properties.mode())) {
+            return loginViaNextcloud(username, password);
+        }
+
         return userRepository.findByUsername(username)
                 .filter(user -> passwordEncoder.matches(password, user.getPasswordHash()))
                 .map(user -> {
@@ -60,6 +72,33 @@ public class AuthController {
                 })
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "invalid credentials")));
+    }
+
+    private ResponseEntity<?> loginViaNextcloud(String username, String password) {
+        try {
+            String url = properties.nextcloud().url() + "/ocs/v1.php/cloud/user";
+            var connection = (java.net.HttpURLConnection) new java.net.URI(url).toURL().openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("OCS-APIRequest", "true");
+            connection.setRequestProperty("Accept", "application/json");
+            String encoded = java.util.Base64.getEncoder()
+                    .encodeToString((username + ":" + password).getBytes());
+            connection.setRequestProperty("Authorization", "Basic " + encoded);
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+
+            int status = connection.getResponseCode();
+            if (status == 200) {
+                String token = jwtService.generateToken(username);
+                return ResponseEntity.ok(Map.of("token", token));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "invalid credentials"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Nextcloud unavailable: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/refresh")
