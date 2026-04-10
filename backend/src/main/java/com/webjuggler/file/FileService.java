@@ -97,9 +97,56 @@ public class FileService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not the file owner");
         }
 
-        Path filePath = Path.of(entity.getStoragePath());
-        Files.deleteIfExists(filePath);
-        parsedFileCache.evict(fileId);
-        fileRepository.delete(entity);
+        if ("nas".equals(entity.getSource())) {
+            // NAS file: only remove DB record + cache, don't touch filesystem
+            parsedFileCache.evict(fileId);
+            fileRepository.delete(entity);
+        } else {
+            // Uploaded file: delete from disk + DB
+            Path filePath = Path.of(entity.getStoragePath());
+            Files.deleteIfExists(filePath);
+            parsedFileCache.evict(fileId);
+            fileRepository.delete(entity);
+        }
+    }
+
+    public FileEntity openNasFile(String nasBasePath, String relativePath, String username) {
+        // Check for duplicate by NAS relative path
+        var existing = fileRepository.findAll().stream()
+                .filter(f -> relativePath.equals(f.getNasRelativePath()))
+                .findFirst();
+        if (existing.isPresent()) return existing.get();
+
+        Path fullPath = Path.of(nasBasePath).resolve(relativePath).normalize();
+        // Security: ensure path stays within nasBasePath
+        if (!fullPath.startsWith(Path.of(nasBasePath).normalize())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid path");
+        }
+        if (!Files.exists(fullPath)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "File not found on NAS");
+        }
+
+        FileEntity entity = new FileEntity();
+        entity.setOriginalFilename(fullPath.getFileName().toString());
+        entity.setStoragePath(fullPath.toString());
+        entity.setUploadedBy(username);
+        entity.setUploadedAt(LocalDateTime.now());
+        try { entity.setFileSize(Files.size(fullPath)); } catch (IOException e) { entity.setFileSize(0); }
+        entity.setSource("nas");
+        entity.setNasRelativePath(relativePath);
+        entity.setStatus(FileEntity.FileStatus.PARSING);
+        entity = fileRepository.save(entity);
+
+        try {
+            byte[] data = Files.readAllBytes(fullPath);
+            ULogFile parsed = ULogParser.parse(data);
+            parsedFileCache.put(entity.getId(), parsed);
+            entity.setStatus(FileEntity.FileStatus.READY);
+        } catch (Exception e) {
+            entity.setStatus(FileEntity.FileStatus.ERROR);
+            entity.setErrorMessage(e.getMessage());
+        }
+
+        return fileRepository.save(entity);
     }
 }

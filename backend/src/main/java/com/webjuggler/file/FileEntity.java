@@ -33,6 +33,11 @@ public class FileEntity {
 
     private String errorMessage;
 
+    @Column(nullable = false)
+    private String source = "upload";  // "upload" | "nas"
+
+    private String nasRelativePath;    // NAS relative path for dedup, null for uploads
+
     public FileEntity() {}
 
     public String getId() { return id; }
@@ -58,4 +63,9 @@ public class FileEntity {
 
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
+    public String getNasRelativePath() { return nasRelativePath; }
+    public void setNasRelativePath(String nasRelativePath) { this.nasRelativePath = nasRelativePath; }
 }
