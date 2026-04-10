@@ -8,24 +8,22 @@ Web-based time-series data viewer inspired by [PlotJuggler](https://github.com/f
 
 - **ULog file parsing** — PX4 flight log viewer (Java parser, all 13 message types)
 - **Full-resolution data** — no downsampling, exact cursor values
-- **Multi-file comparison** — load multiple files simultaneously, per-file topic namespacing
-- **Recursive split layout** — right-click to split V/H, drag borders to resize
-- **Drag & drop plotting**
-  - 1 field → Time-series (uPlot)
-  - 2 fields → X-Y scatter/trajectory (Canvas)
-  - 3 fields → 3D scatter (Three.js)
-  - 4 fields → Attitude quaternion view (Three.js)
-- **Special views** — heading compass (multi-needle, auto rad/deg), 3D attitude (multi-quaternion comparison)
-- **Cursor system** — 3 modes: OFF (playback only), Point (nearest data point), Time (move tracker)
-- **Cursor values overlay** — follows cursor line with intersection dots and series values
+- **Multi-file comparison** — load multiple files, time-aligned via Boot Time / GPS Time modes
+- **Tabbed plot area** — multiple tabs, each with independent split layout
+- **Drag & drop** — drag fields to plot, drag .ulg files onto app to upload
+- **Plot types** — time-series (uPlot), X-Y multi-curve, 3D multi-trajectory, attitude, compass
+- **View mode switching** — right-click context menu to switch between plot types
+- **Custom functions** — mathjs expression editor with 10 built-in templates (derivative, integral, quat→euler, distance, etc.) and live preview
+- **Cursor system** — 3 modes: OFF, Point (nearest data point tooltip), Time (move tracker). Works on time-series, XY, and 3D plots
 - **Synchronized zoom/pan** — 2D drag zoom (X+Y), sync across all time-series plots
 - **Playback controls** — timeline slider, play/pause, speed (0.5x–10x)
-- **Edit Curves** — per-plot color, line style (Lines/Dots/Lines+Dots), line width
-- **3D axis config** — swap/remap axes, negate toggle, PX4 NED mapping
-- **Undo/Redo** — Ctrl+Z/Y for all layout changes
-- **Layout persistence** — survives page refresh (localStorage)
+- **Legend controls** — position cycling (4 corners + hide) via right sidebar button
+- **Edit Curves** — per-plot color, line style, line width
+- **Axis config** — XY and 3D: swap/remap axes, negate toggle
+- **Undo/Redo** — Ctrl+Z/Y, per-tab undo stacks
+- **Layout persistence** — tabs, splits, series survive page refresh
 - **Dark/Light mode** — CSS variable theming
-- **Simple auth** — JWT login/register for team access
+- **SOLO/NAS modes** — SOLO (no auth, local only) or NAS (Nextcloud auth + NAS file browsing)
 
 ## Quick Start
 
@@ -54,13 +52,15 @@ npm run dev
 
 Runs on `http://localhost:3000` (proxies API to backend)
 
+See [DEPLOY.md](DEPLOY.md) for full deployment guide (SOLO/NAS modes, NAS mount, configuration).
+
 ### Usage
 
 1. Open `http://localhost:3000`
-2. Register an account
-3. Upload a `.ulg` file
+2. SOLO mode: no login needed. NAS mode: login with Nextcloud credentials
+3. Upload `.ulg` files (drag & drop or Upload button)
 4. Expand topics in the sidebar, drag fields to the plot area
-5. Right-click on a plot to split, resize by dragging borders
+5. Right-click on a plot to split, change view mode, or configure axes
 
 ## Architecture
 
@@ -94,44 +94,19 @@ Browser (React + TypeScript)          Spring Boot 3 (Java 21)
 
 ## Configuration
 
-Edit `backend/src/main/resources/application.yml`:
-
-```yaml
-webjuggler:
-  upload:
-    path: ./uploads          # file storage directory
-    max-size-mb: 500         # max upload size
-  cache:
-    max-size-mb: 1024        # parsed file cache (LRU)
-  jwt:
-    secret: <change-me>      # JWT signing key (256+ bits)
-    expiration-hours: 24
-  browse:
-    allowed-paths: []        # server directories for browsing
-```
-
-## API
-
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Login → JWT |
-| POST | `/api/auth/refresh` | Refresh token |
-| POST | `/api/files/upload` | Upload .ulg file |
-| GET | `/api/files` | List files |
-| DELETE | `/api/files/{id}` | Delete file |
-| GET | `/api/files/{id}/topics` | Topic tree |
-| GET | `/api/files/{id}/info` | File metadata |
-| POST | `/api/files/{id}/data` | Field data (full resolution) |
+See [DEPLOY.md](DEPLOY.md) for all configuration options.
 
 ## Roadmap
 
 - [x] ULog viewer with time-series, X-Y, 3D, attitude, compass
 - [x] Multi-file comparison, cursor sync, playback controls
-- [x] Edit Curves, 3D axis config, undo/redo, layout persistence
+- [x] Edit Curves, axis config, undo/redo, layout persistence
+- [x] Tabbed plot area, custom functions, multi-curve XY/3D
+- [x] SOLO/NAS mode, Nextcloud auth, NAS file browser
+- [x] Boot Time / GPS Time axis modes
 - [ ] ROS2 db3 file support
-- [ ] Server directory browsing (NAS)
 - [ ] Data transforms (derivative, moving average)
+- [ ] Live data streaming
 
 ## License
 

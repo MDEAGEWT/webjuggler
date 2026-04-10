@@ -60,24 +60,30 @@ frontend/src/
 
 - **No downsampling** — full-resolution data always, all zoom/pan client-side
 - **No WebSocket** — pure REST, data loaded once per field
-- **Drag count determines plot type**: 1=time-series, 2=X-Y, 3=3D
-- **Recursive split layout** — binary tree, right-click to split V/H
+- **View mode via context menu** — right-click to switch between timeseries/XY/3D/attitude/compass
+- **Tabbed layout** — each tab has independent split tree + undo stack
+- **Multi-curve XY/3D** — series paired by 2 (XY) or 3 (3D), each pair = one curve/trajectory
+- **Custom functions** — mathjs/number expression evaluator, results stored in data store with `custom:` key prefix
+- **Time axis modes** — Boot Time (default, offsets by fileStartTime) and GPS Time. Data stored as boot-relative, offsets applied in adjustedData layer
+- **SOLO/NAS modes** — configured via `webjuggler.mode` property. SOLO: permitAll + SoloAuthFilter. NAS: JWT + Nextcloud OCS login
 - **ULog parser** — pure Java port of PlotJuggler's C++ parser, handles all 13 message types
-- **Cursor sync** — all time-series plots sync via uPlot sync key; X-Y and 3D show cursor sphere
 
 ## API Endpoints
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/auth/register | No | Create account |
+| GET | /api/config | No | App mode + settings |
 | POST | /api/auth/login | No | Login → JWT |
+| POST | /api/auth/register | No | Create account (SOLO only) |
 | POST | /api/auth/refresh | Yes | Refresh token |
 | POST | /api/files/upload | Yes | Upload .ulg file |
 | GET | /api/files | Yes | List files |
 | DELETE | /api/files/{id} | Yes | Delete (owner only) |
 | GET | /api/files/{id}/topics | Yes | Topic tree |
-| GET | /api/files/{id}/info | Yes | Metadata |
+| GET | /api/files/{id}/info | Yes | Metadata + startTimeMicros + gpsOffsetUs |
 | POST | /api/files/{id}/data | Yes | Full field data |
+| GET | /api/nas/browse | Yes | Browse NAS directory (NAS mode) |
+| POST | /api/nas/open | Yes | Open NAS files (NAS mode) |
 
 ## Recommended Plugins
 
@@ -111,24 +117,23 @@ frontend/src/
 ### Special visualization modes
 - [x] **Heading compass view** — multi-needle compass, auto radian↔degree, full topic/field labels in overlay
 - [x] **3D Attitude view** — multi-quaternion comparison (up to 3 groups), PX4 NED→Three.js mapping, distinct rod colors per group, RGB axis tips, euler overlay
-- [x] **X-Y plot** — canvas scatter with trajectory line, cursor sync highlight
-- [x] **3D scatter plot** — Three.js with orbit controls, axis negate buttons, Z=vertical mapping
-- [x] **Cursor modes** — OFF (playback only), Point (nearest data point hover with PlotJuggler-style tooltip), Time (move tracker)
-- [ ] **3D axis config dialog** — swap/assign which data field maps to X/Y/Z, negate toggle. Small popup from axis control buttons
+- [x] **X-Y plot** — multi-curve canvas scatter with trajectory line, cursor point mode
+- [x] **3D scatter plot** — multi-trajectory Three.js with orbit controls, cursor point mode, per-trajectory colors
+- [x] **Cursor modes** — OFF, Point (tooltip on all plot types), Time (move tracker)
+- [x] **Axis config** — XY and 3D: swap/remap axes, negate toggle, via context menu
+- [x] **Custom functions** — mathjs expression editor, 10 templates, live preview, function library
+- [x] **Tabbed plot area** — named tabs, per-tab undo, Custom Function Editor as tab
+- [x] **Time axis modes** — Boot Time / GPS Time, per-file offset
+- [x] **SOLO/NAS modes** — no-auth local mode + Nextcloud auth NAS browsing
 
 ### Nice-to-have
-- [ ] **Tabbed plot groups** — organize plots into named tabs instead of one giant split tree
 - [ ] **Recent files menu** — quick access to previously opened files
-- [ ] **Time offset controls** — remove time offset, show relative time from arbitrary point
 - [ ] **Fullscreen mode** — F11 or button to maximize plot area
 - [ ] **Help/cheatsheet dialog** — show available shortcuts and features
-- [ ] **Per-field data point count** — show count at field level in sidebar, not just topic level
 
-### Deferred — Phase 3+
+### Deferred
 - [ ] ROS2 db3 file support (SQLite JDBC + CDR deserialization)
-- [x] Server directory browsing (NAS mount) — see NAS Flight Log Structure below
 - [ ] Live data streaming (ROS2 topics, UDP, WebSocket)
-- [ ] Data transforms (derivative, moving average, etc.)
 
 ## NAS Integration
 
