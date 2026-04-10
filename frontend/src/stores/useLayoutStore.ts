@@ -132,7 +132,7 @@ interface LayoutState {
   renameSeriesInAll: (oldField: string, newField: string) => void
   undo: () => void
   redo: () => void
-  addTab: (type: 'plot' | 'editor', editingFunctionId?: string | null, name?: string) => void
+  addTab: (type: 'plot' | 'editor' | 'nas-browser', editingFunctionId?: string | null, name?: string) => void
   closeTab: (tabId: string) => void
   setActiveTab: (tabId: string) => void
   renameTab: (tabId: string, name: string) => void
@@ -340,6 +340,15 @@ export const useLayoutStore = create<LayoutState>()(
       addTab: (type, editingFunctionId, name) => {
         const state = get()
 
+        // If adding a NAS browser tab, dedup — only one allowed
+        if (type === 'nas-browser') {
+          const existing = state.tabs.find((t) => t.type === 'nas-browser')
+          if (existing) {
+            set({ activeTabId: existing.id })
+            return
+          }
+        }
+
         // If adding an editor tab for an existing function, just focus it
         if (type === 'editor' && editingFunctionId) {
           const existing = state.tabs.find(
@@ -364,6 +373,8 @@ export const useLayoutStore = create<LayoutState>()(
             let n = 1
             while (usedNumbers.includes(n)) n++
             tabName = `Tab ${n}`
+          } else if (type === 'nas-browser') {
+            tabName = 'NAS Browser'
           } else {
             tabName = 'New Function'
           }

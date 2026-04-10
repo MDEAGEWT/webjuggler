@@ -16,6 +16,7 @@ import RightSidebar from './components/RightSidebar'
 import ToastContainer from './components/ToastContainer'
 import TabBar from './components/TabBar'
 import { CustomFunctionEditorTab } from './components/CustomFunction/CustomFunctionEditorTab'
+import NasBrowser from './components/NasBrowser/NasBrowser'
 
 export default function App() {
   const token = useAuthStore((s) => s.token)
@@ -141,7 +142,9 @@ export default function App() {
         <div className="plot-area">
           <TabBar />
           <div className="tab-content">
-            {activeTab?.type === 'editor' ? (
+            {activeTab?.type === 'nas-browser' ? (
+              <NasBrowser tabId={activeTab.id} />
+            ) : activeTab?.type === 'editor' ? (
               <CustomFunctionEditorTab
                 editingId={activeTab.editingFunctionId ?? null}
                 tabId={activeTab.id}

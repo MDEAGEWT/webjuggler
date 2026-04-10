@@ -59,7 +59,7 @@ export interface CustomFunctionDef {
 export interface TabDef {
   id: string
   name: string
-  type: 'plot' | 'editor'
+  type: 'plot' | 'editor' | 'nas-browser'
   root: LayoutNode
   undoStack: LayoutNode[]
   redoStack: LayoutNode[]
