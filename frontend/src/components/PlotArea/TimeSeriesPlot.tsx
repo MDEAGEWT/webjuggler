@@ -41,14 +41,20 @@ function seriesLabel(compositeField: string): string {
   return `[${prefix}] ${shortField}`
 }
 
-/** Short name for cursor overlay (no file prefix, just the field leaf) */
+/** Label for cursor tooltip: single file → topic/field, multi-file → [filename] topic/field */
 function shortLabel(compositeField: string): string {
   if (compositeField.startsWith('custom:')) {
     return '[fn] ' + compositeField.substring(7)
   }
+  const files = useFileStore.getState().files
   const colonIdx = compositeField.indexOf(':')
-  const path = colonIdx === -1 ? compositeField : compositeField.substring(colonIdx + 1)
-  return path.split('/').slice(-1)[0] ?? path
+  if (colonIdx === -1) return compositeField
+  const fileId = compositeField.substring(0, colonIdx)
+  const fieldPath = compositeField.substring(colonIdx + 1)
+  if (files.length <= 1) return fieldPath
+  const file = files.find((f) => f.fileId === fileId)
+  const prefix = file ? file.shortName : fileId.substring(0, 6)
+  return `[${prefix}] ${fieldPath}`
 }
 
 interface Props {

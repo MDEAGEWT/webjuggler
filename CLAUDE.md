@@ -126,9 +126,73 @@ frontend/src/
 
 ### Deferred — Phase 3+
 - [ ] ROS2 db3 file support (SQLite JDBC + CDR deserialization)
-- [ ] Server directory browsing (NAS mount)
+- [x] Server directory browsing (NAS mount) — see NAS Flight Log Structure below
 - [ ] Live data streaming (ROS2 topics, UDP, WebSocket)
 - [ ] Data transforms (derivative, moving average, etc.)
+
+## NAS Flight Log Structure
+
+The server has NFS-mounted NAS storage at `/mnt/nas_storage/`.
+WebJuggler reads from `Share/flight_logs/` which contains organized PX4 ULG files.
+
+**Mount path:** `/mnt/nas_storage/Share/flight_logs/`
+
+```
+flight_logs/
+├── 2026-03-28/
+│   ├── swarm_session_1/
+│   │   ├── drone_60_03_07_46.ulg
+│   │   ├── drone_67_03_07_46.ulg
+│   │   ├── drone_100_03_07_46.ulg
+│   │   ├── summary.json
+│   │   └── report.pdf
+│   ├── swarm_session_2/
+│   │   └── ...
+│   ├── solo_flights/
+│   │   ├── drone_84_02_45_19.ulg
+│   │   └── report.pdf
+│   ├── _unarmed/
+│   │   └── drone_60_01_55_53.ulg
+│   └── overview_report.pdf
+├── 2026-04-10/
+│   └── ...
+```
+
+**Naming conventions:**
+- Date folders: `YYYY-MM-DD` (KST)
+- Swarm sessions: `swarm_session_N/` — multiple drones that flew simultaneously
+- Solo flights: `solo_flights/` — single-drone armed flights
+- Unarmed: `_unarmed/` — ground logs (no takeoff)
+- ULG filenames: `{drone_id}_{HH_MM_SS}.ulg`
+
+**summary.json** (per swarm session):
+```json
+{
+  "session_id": "swarm_session_1",
+  "date": "2026-03-28",
+  "drone_count": 25,
+  "drone_ids": ["drone_60", "drone_67", "drone_100"],
+  "start_time": "2026-03-28T03:07:46+00:00",
+  "end_time": "2026-03-28T03:08:10+00:00",
+  "total_duration_sec": 24.1,
+  "flights": [
+    {
+      "drone_id": "drone_60",
+      "filename": "drone_60_03_07_46.ulg",
+      "is_armed": true,
+      "flight_duration_sec": 24.1,
+      "start_time_utc": "2026-03-28T03:07:46+00:00"
+    }
+  ]
+}
+```
+
+**Integration notes:**
+- Browse endpoint should scan `/mnt/nas_storage/Share/flight_logs/` for date → session → ULG hierarchy
+- `summary.json` provides metadata without parsing ULGs
+- `_unarmed/` can be hidden or shown via toggle
+- Files are read-only (chmod 444) — no upload/delete for NAS files
+- Multiple ULGs from same session should be loadable together for swarm comparison
 
 ### Not planned
 - Data export (CSV/image)

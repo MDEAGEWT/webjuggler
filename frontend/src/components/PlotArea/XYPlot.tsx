@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
@@ -222,66 +222,10 @@ export default function XYPlot({ panelId, series }: Props) {
     return () => obs.disconnect()
   }, [draw])
 
-  // Mouse interaction — update cursor on hover (only in time mode)
-  const cursorMode = useSettingsStore((s) => s.cursorMode)
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (cursorMode !== 'time') return
-    const el = containerRef.current
-    if (!el) return
-
-    // Use first curve pair for mouse interaction
-    const xField = series[0], yField = series[1]
-    if (!xField || !yField) return
-    const xData = data[xField], yData = data[yField]
-    if (!xData || !yData) return
-
-    const rect = el.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-
-    const margin = { top: 20, right: 20, bottom: 40, left: 60 }
-    const plotW = el.clientWidth - margin.left - margin.right
-    const plotH = el.clientHeight - margin.top - margin.bottom
-
-    // Compute bounds across all curves (same as draw)
-    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity
-    for (let c = 0; c + 1 < series.length; c += 2) {
-      const xd = data[series[c]!], yd = data[series[c + 1]!]
-      if (!xd || !yd) continue
-      const len = Math.min(xd.values.length, yd.values.length)
-      for (let i = 0; i < len; i++) {
-        const xv = xd.values[i]!, yv = yd.values[i]!
-        if (Number.isFinite(xv)) { if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv }
-        if (Number.isFinite(yv)) { if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv }
-      }
-    }
-    const xRange = (xMax - xMin) || 1, yRange = (yMax - yMin) || 1
-    xMin -= xRange * 0.05; xMax += xRange * 0.05
-    yMin -= yRange * 0.05; yMax += yRange * 0.05
-
-    const toX = (v: number) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW
-    const toY = (v: number) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH
-
-    // Find nearest point across all curves
-    let bestTs = 0, bestDist = Infinity
-    for (let c = 0; c + 1 < series.length; c += 2) {
-      const xd = data[series[c]!], yd = data[series[c + 1]!]
-      if (!xd || !yd) continue
-      const len = Math.min(xd.values.length, yd.values.length)
-      for (let i = 0; i < len; i++) {
-        const dx = toX(xd.values[i]!) - mx
-        const dy = toY(yd.values[i]!) - my
-        const d = dx * dx + dy * dy
-        if (d < bestDist) { bestDist = d; bestTs = xd.timestamps[i]! }
-      }
-    }
-    if (bestTs != null) setCursor(bestTs)
-  }, [series, data, setCursor, cursorMode])
-
   const xLabel = series[0]?.split('/').slice(-1)[0] ?? 'X'
   const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
 
-  // Build legend entries (one per curve pair)
+  // Build legend entries (one per curve pair) — must be before handleMouseMove
   const files = useFileStore((s) => s.files)
   const legendEntries: { color: string; label: string }[] = []
   for (let c = 0; c + 1 < series.length; c += 2) {
@@ -304,11 +248,88 @@ export default function XYPlot({ panelId, series }: Props) {
     legendEntries.push({ color: PLOT_COLORS[c / 2 % PLOT_COLORS.length]!, label })
   }
 
+  // Mouse interaction — point mode (tooltip) + time mode (cursor sync)
+  const cursorMode = useSettingsStore((s) => s.cursorMode)
+  const [pointInfo, setPointInfo] = useState<{ x: number; y: number; label: string; xVal: number; yVal: number; color: string } | null>(null)
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (cursorMode === 'off') { setPointInfo(null); return }
+    const el = containerRef.current
+    if (!el) return
+
+    const rect = el.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+
+    const margin = { top: 20, right: 20, bottom: 40, left: 60 }
+    const plotW = el.clientWidth - margin.left - margin.right
+    const plotH = el.clientHeight - margin.top - margin.bottom
+
+    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity
+    for (let c = 0; c + 1 < series.length; c += 2) {
+      const xd = data[series[c]!], yd = data[series[c + 1]!]
+      if (!xd || !yd) continue
+      const len = Math.min(xd.values.length, yd.values.length)
+      for (let i = 0; i < len; i++) {
+        const xv = xd.values[i]!, yv = yd.values[i]!
+        if (Number.isFinite(xv)) { if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv }
+        if (Number.isFinite(yv)) { if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv }
+      }
+    }
+    const xRange = (xMax - xMin) || 1, yRange = (yMax - yMin) || 1
+    xMin -= xRange * 0.05; xMax += xRange * 0.05
+    yMin -= yRange * 0.05; yMax += yRange * 0.05
+
+    const toX = (v: number) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW
+    const toY = (v: number) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH
+
+    // Find nearest point across all curves
+    let bestTs = 0, bestDist = Infinity, bestX = 0, bestY = 0, bestPx = 0, bestPy = 0, bestCurve = 0
+    for (let c = 0; c + 1 < series.length; c += 2) {
+      const xd = data[series[c]!], yd = data[series[c + 1]!]
+      if (!xd || !yd) continue
+      const len = Math.min(xd.values.length, yd.values.length)
+      for (let i = 0; i < len; i++) {
+        const px = toX(xd.values[i]!), py = toY(yd.values[i]!)
+        const dx = px - mx, dy = py - my
+        const d = dx * dx + dy * dy
+        if (d < bestDist) {
+          bestDist = d; bestTs = xd.timestamps[i]!
+          bestX = xd.values[i]!; bestY = yd.values[i]!
+          bestPx = px; bestPy = py; bestCurve = c / 2
+        }
+      }
+    }
+
+    if (cursorMode === 'time') {
+      if (bestTs != null) setCursor(bestTs)
+    }
+
+    if (cursorMode === 'point' && bestDist < 50 * 50) {
+      const curveLabel = legendEntries[bestCurve]?.label ?? ''
+      setPointInfo({ x: bestPx, y: bestPy, label: curveLabel, xVal: bestX, yVal: bestY, color: legendEntries[bestCurve]?.color ?? '#fff' })
+    } else {
+      setPointInfo(null)
+    }
+  }, [series, data, setCursor, cursorMode, legendEntries])
+
+  const handleMouseLeave = useCallback(() => { setPointInfo(null) }, [])
+
   const showLegend = useSettingsStore((s) => s.showLegend)
   const legendPosition = useSettingsStore((s) => s.legendPosition)
   return (
-    <div ref={containerRef} className="xy-plot" onMouseMove={handleMouseMove}>
+    <div ref={containerRef} className="xy-plot" onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
+      {pointInfo && (
+        <>
+          <div className="cursor-dot" style={{ position: 'absolute', left: pointInfo.x - 4, top: pointInfo.y - 4, width: 9, height: 9, background: '#000', border: `2px solid ${pointInfo.color}`, borderRadius: '50%', pointerEvents: 'none' }} />
+          <div className="point-tooltip" style={{ position: 'absolute', left: pointInfo.x + 12, top: pointInfo.y - 20, pointerEvents: 'none' }}>
+            <div style={{ color: pointInfo.color }}>{pointInfo.label}</div>
+            <div>x: {pointInfo.xVal.toFixed(4)}</div>
+            <div>y: {pointInfo.yVal.toFixed(4)}</div>
+          </div>
+        </>
+      )}
       {legendEntries.length > 0 && showLegend && (
         <div className={`xy-legend xy-legend-${legendPosition}`}>
           {legendEntries.map((entry, i) => (
