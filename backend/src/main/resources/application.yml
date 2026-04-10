@@ -17,6 +17,7 @@ spring:
       max-request-size: 500MB
 
 webjuggler:
+  mode: solo
   upload:
     path: ./uploads
     max-size-mb: 500
@@ -27,3 +28,7 @@ webjuggler:
     expiration-hours: 24
   browse:
     allowed-paths: []
+  nextcloud:
+    url: ""
+  nas:
+    path: ""

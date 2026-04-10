@@ -5,13 +5,18 @@ import java.util.List;
 
 @ConfigurationProperties(prefix = "webjuggler")
 public record WebJugglerProperties(
+    String mode,
     Upload upload,
     Cache cache,
     Jwt jwt,
-    Browse browse
+    Browse browse,
+    Nextcloud nextcloud,
+    Nas nas
 ) {
     public record Upload(String path, int maxSizeMb) {}
     public record Cache(int maxSizeMb) {}
     public record Jwt(String secret, int expirationHours) {}
     public record Browse(List<String> allowedPaths) {}
+    public record Nextcloud(String url) {}
+    public record Nas(String path) {}
 }
