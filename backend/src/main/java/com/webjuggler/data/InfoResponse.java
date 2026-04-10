@@ -8,7 +8,9 @@ public record InfoResponse(
         List<ParameterEntry> parameters,
         double duration,
         int topicCount,
-        long totalDataPoints) {
+        long totalDataPoints,
+        long startTimeMicros,
+        Long gpsOffsetUs) {
 
     public record ParameterEntry(String name, String type, float floatValue, int intValue) {
     }
