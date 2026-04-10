@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { PLOT_COLORS } from '../../constants'
 import { useFileStore } from '../../stores/useFileStore'
 import { useLayoutStore } from '../../stores/useLayoutStore'
+import { useSettingsStore } from '../../stores/useSettingsStore'
 
 function getSeriesColor(index: number): string {
   return PLOT_COLORS[index % PLOT_COLORS.length]!
@@ -42,6 +43,8 @@ export default function PlotLegend({
   onRemoveSeries,
 }: PlotLegendProps) {
   const colorOverrides = useLayoutStore((s) => s.colorOverrides)
+  const showLegend = useSettingsStore((s) => s.showLegend)
+  const legendPosition = useSettingsStore((s) => s.legendPosition)
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, field: string) => {
       e.preventDefault()
@@ -51,10 +54,10 @@ export default function PlotLegend({
     [onRemoveSeries],
   )
 
-  if (series.length === 0) return null
+  if (series.length === 0 || !showLegend) return null
 
   return (
-    <div className="plot-legend">
+    <div className={`plot-legend plot-legend-${legendPosition}`}>
       {series.map((field, idx) => {
         const hidden = hiddenSeries.has(field)
         const color = colorOverrides[field] ?? getSeriesColor(idx)

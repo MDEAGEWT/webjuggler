@@ -31,7 +31,7 @@ const CURSOR_MODE_ICONS = {
 } as const
 
 export default function RightSidebar() {
-  const { syncZoom, showCursorValues, cursorMode, toggleSyncZoom, toggleCursorValues, cycleCursorMode } = useSettingsStore()
+  const { syncZoom, showCursorValues, cursorMode, showLegend, toggleSyncZoom, toggleCursorValues, cycleCursorMode, toggleLegend } = useSettingsStore()
 
   return (
     <div className="right-sidebar">
@@ -62,6 +62,19 @@ export default function RightSidebar() {
         title={CURSOR_MODE_LABELS[cursorMode]}
       >
         {CURSOR_MODE_ICONS[cursorMode]}
+      </button>
+      <button
+        className={`right-sidebar-btn ${showLegend ? 'active' : ''}`}
+        onClick={toggleLegend}
+        title={showLegend ? 'Legend: ON' : 'Legend: OFF'}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="7" y1="8" x2="10" y2="8" />
+          <line x1="12" y1="8" x2="17" y2="8" />
+          <line x1="7" y1="12" x2="10" y2="12" />
+          <line x1="12" y1="12" x2="17" y2="12" />
+        </svg>
       </button>
     </div>
   )

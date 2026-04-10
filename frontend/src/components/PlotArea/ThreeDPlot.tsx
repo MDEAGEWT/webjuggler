@@ -5,6 +5,8 @@ import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { useLayoutStore, selectActiveRoot } from '../../stores/useLayoutStore'
+import { useFileStore } from '../../stores/useFileStore'
+import { useSettingsStore } from '../../stores/useSettingsStore'
 import { PLOT_COLORS } from '../../constants'
 import AxisControls from './AxisControls'
 import type { LayoutNode, PlotNode } from '../../types'
@@ -81,6 +83,8 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     const plot = findPlotNode(root, panelId)
     return plot?.axisMapping ?? DEFAULT_MAPPING
   })()
+  const showLegend = useSettingsStore((s) => s.showLegend)
+  const legendPosition = useSettingsStore((s) => s.legendPosition)
 
   // On mount / series change, fetch any missing field data (e.g. after restore from localStorage)
   useEffect(() => {
@@ -314,21 +318,31 @@ export default function ThreeDPlot({ panelId, series }: Props) {
   const zLabel = series[mapping[2]!]?.split('/').slice(-1)[0] ?? 'Z'
 
   // Build legend entries (one per trajectory group)
+  const files = useFileStore((s) => s.files)
   const legendEntries: { color: string; label: string }[] = []
   for (let g = 0; g + 2 < series.length; g += 3) {
     const stripFileId = (s: string) => { const i = s.indexOf(':'); return i >= 0 ? s.substring(i + 1) : s }
+    const getFilePrefix = (s: string) => {
+      if (files.length <= 1) return ''
+      const colonIdx = s.indexOf(':')
+      if (colonIdx < 0) return ''
+      const fid = s.substring(0, colonIdx)
+      const file = files.find((f) => f.fileId === fid)
+      return `[${file ? file.shortName : fid.substring(0, 6)}] `
+    }
     const fields = [series[g]!, series[g + 1]!, series[g + 2]!].map(stripFileId)
     const names = fields.map((f) => f.split('/').slice(-1)[0] ?? f)
     const topic = fields[0]!.split('/').slice(0, -1).join('/')
-    const label = topic ? `${topic} (${names.join(', ')})` : names.join(', ')
+    const prefix = getFilePrefix(series[g]!)
+    const label = topic ? `${prefix}${topic} (${names.join(', ')})` : `${prefix}${names.join(', ')}`
     legendEntries.push({ color: PLOT_COLORS[g / 3 % PLOT_COLORS.length]!, label })
   }
 
   return (
     <div className="three-d-plot" style={{ position: 'relative', overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
-      {legendEntries.length > 0 && (
-        <div className="xy-legend">
+      {legendEntries.length > 0 && showLegend && (
+        <div className={`xy-legend xy-legend-${legendPosition}`}>
           {legendEntries.map((entry, i) => (
             <div key={i} className="xy-legend-item">
               <span className="xy-legend-color" style={{ background: entry.color }} />

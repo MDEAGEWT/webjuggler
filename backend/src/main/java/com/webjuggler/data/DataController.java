@@ -72,9 +72,13 @@ public class DataController {
     }
 
     private Long extractGpsOffsetUs(ULogFile ulog) {
-        Long offset = tryGpsOffset(ulog, "sensor_gnss_relative", "/time_utc_usec");
-        if (offset != null) return offset;
-        return tryGpsOffset(ulog, "piksi_rtk", "/time_utc_usec");
+        try {
+            Long offset = tryGpsOffset(ulog, "sensor_gnss_relative", "/time_utc_usec");
+            if (offset != null) return offset;
+            return tryGpsOffset(ulog, "piksi_rtk", "/time_utc_usec");
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Long tryGpsOffset(ULogFile ulog, String topicName, String fieldName) {
@@ -88,7 +92,6 @@ public class DataController {
             double gpsUtcUsec = fd.values()[0];
             if (!Double.isFinite(gpsUtcUsec) || gpsUtcUsec <= 0) continue;
 
-            // Recover raw boot timestamp: relative_sec * 1e6 + fileStartTime
             double relativeSec = ts.timestamps()[0];
             long bootUs = (long)(relativeSec * 1_000_000.0) + ulog.fileStartTime();
 

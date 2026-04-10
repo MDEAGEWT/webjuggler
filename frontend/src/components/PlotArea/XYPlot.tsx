@@ -3,6 +3,7 @@ import { useDataStore } from '../../stores/useDataStore'
 import { useCursorStore } from '../../stores/useCursorStore'
 import { useThemeStore } from '../../stores/useThemeStore'
 import { useLayoutStore, selectActiveRoot } from '../../stores/useLayoutStore'
+import { useFileStore } from '../../stores/useFileStore'
 import { useSettingsStore } from '../../stores/useSettingsStore'
 import { PLOT_COLORS } from '../../constants'
 import AxisControls from './AxisControls'
@@ -281,24 +282,35 @@ export default function XYPlot({ panelId, series }: Props) {
   const yLabel = series[1]?.split('/').slice(-1)[0] ?? 'Y'
 
   // Build legend entries (one per curve pair)
+  const files = useFileStore((s) => s.files)
   const legendEntries: { color: string; label: string }[] = []
   for (let c = 0; c + 1 < series.length; c += 2) {
-    // Strip fileId prefix (e.g. "uuid:topic/field" → "topic/field")
     const stripFileId = (s: string) => { const i = s.indexOf(':'); return i >= 0 ? s.substring(i + 1) : s }
-    const xPath = stripFileId(series[c]!)   // e.g. "vehicle_local_position/x"
+    const getFilePrefix = (s: string) => {
+      if (files.length <= 1) return ''
+      const colonIdx = s.indexOf(':')
+      if (colonIdx < 0) return ''
+      const fid = s.substring(0, colonIdx)
+      const file = files.find((f) => f.fileId === fid)
+      return `[${file ? file.shortName : fid.substring(0, 6)}] `
+    }
+    const xPath = stripFileId(series[c]!)
     const yPath = stripFileId(series[c + 1]!)
-    const xName = xPath.split('/').slice(-1)[0] ?? xPath  // "x"
-    const yName = yPath.split('/').slice(-1)[0] ?? yPath  // "y"
-    const topic = xPath.split('/').slice(0, -1).join('/')  // "vehicle_local_position"
-    const label = topic ? `${topic} (${xName}, ${yName})` : `${xName}, ${yName}`
+    const xName = xPath.split('/').slice(-1)[0] ?? xPath
+    const yName = yPath.split('/').slice(-1)[0] ?? yPath
+    const topic = xPath.split('/').slice(0, -1).join('/')
+    const prefix = getFilePrefix(series[c]!)
+    const label = topic ? `${prefix}${topic} (${xName}, ${yName})` : `${prefix}${xName}, ${yName}`
     legendEntries.push({ color: PLOT_COLORS[c / 2 % PLOT_COLORS.length]!, label })
   }
 
+  const showLegend = useSettingsStore((s) => s.showLegend)
+  const legendPosition = useSettingsStore((s) => s.legendPosition)
   return (
     <div ref={containerRef} className="xy-plot" onMouseMove={handleMouseMove}>
       <canvas ref={canvasRef} style={{ display: 'block' }} />
-      {legendEntries.length > 0 && (
-        <div className="xy-legend">
+      {legendEntries.length > 0 && showLegend && (
+        <div className={`xy-legend xy-legend-${legendPosition}`}>
           {legendEntries.map((entry, i) => (
             <div key={i} className="xy-legend-item">
               <span className="xy-legend-color" style={{ background: entry.color }} />

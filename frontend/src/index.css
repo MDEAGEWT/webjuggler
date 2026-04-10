@@ -482,14 +482,17 @@ body {
 }
 .xy-legend {
   position: absolute;
-  top: 8px;
-  right: 8px;
   background: var(--legend-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 4px 8px;
   pointer-events: none;
+  z-index: 5;
 }
+.xy-legend-top-right { top: 8px; right: 8px; }
+.xy-legend-top-left { top: 8px; left: 8px; }
+.xy-legend-bottom-right { bottom: 8px; right: 8px; }
+.xy-legend-bottom-left { bottom: 8px; left: 8px; }
 .xy-legend-item {
   display: flex;
   align-items: center;
@@ -547,8 +550,6 @@ body {
 /* ---- Plot Legend (custom overlay) ---- */
 .plot-legend {
   position: absolute;
-  top: 4px;
-  right: 4px;
   background: var(--legend-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -559,6 +560,10 @@ body {
   overflow-y: auto;
   z-index: 10;
 }
+.plot-legend-top-right { top: 4px; right: 4px; }
+.plot-legend-top-left { top: 4px; left: 4px; }
+.plot-legend-bottom-right { bottom: 4px; right: 4px; }
+.plot-legend-bottom-left { bottom: 4px; left: 4px; }
 
 .legend-row {
   display: flex;
@@ -1586,4 +1591,26 @@ body {
 }
 .playback-time-mode option:disabled {
   color: var(--text-muted);
+}
+
+/* ---- File Drop Overlay ---- */
+.file-drop-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(79, 195, 247, 0.1);
+  border: 3px dashed var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  pointer-events: none;
+}
+.file-drop-message {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 16px 32px;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
 }
