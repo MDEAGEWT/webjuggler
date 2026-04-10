@@ -19,9 +19,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final WebJugglerProperties properties;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          WebJugglerProperties properties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.properties = properties;
     }
 
     @Bean
@@ -36,14 +39,26 @@ public class SecurityConfig {
             }))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().permitAll()
-            )
-            .addFilterBefore(jwtAuthenticationFilter,
-                UsernamePasswordAuthenticationFilter.class);
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        if ("solo".equals(properties.mode())) {
+            // SOLO mode: permit all requests, inject fixed "local" user
+            http
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .addFilterBefore(new SoloAuthenticationFilter(),
+                    UsernamePasswordAuthenticationFilter.class);
+        } else {
+            // NAS mode: JWT auth, config + auth endpoints public
+            http
+                .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/config").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/**").authenticated()
+                    .anyRequest().permitAll()
+                )
+                .addFilterBefore(jwtAuthenticationFilter,
+                    UsernamePasswordAuthenticationFilter.class);
+        }
 
         return http.build();
     }
