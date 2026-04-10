@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { useDataStore } from '../../stores/useDataStore'
@@ -70,6 +70,8 @@ export default function ThreeDPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
   const cursorGroupsRef = useRef<{ sphere: THREE.Mesh; positions: Float32Array; timestamps: Float64Array }[]>([])
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const [pointInfo, setPointInfo] = useState<{ x: number; y: number; label: string; vals: number[]; color: string } | null>(null)
   const data = useDataStore((s) => s.adjustedData)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
@@ -153,6 +155,7 @@ export default function ThreeDPlot({ panelId, series }: Props) {
       0.1,
       1000,
     )
+    cameraRef.current = camera
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'low-power' })
     renderer.setSize(el.clientWidth, el.clientHeight)
@@ -276,6 +279,7 @@ export default function ThreeDPlot({ panelId, series }: Props) {
         el.removeChild(renderer.domElement)
       }
       cursorGroupsRef.current = []
+      cameraRef.current = null
     }
 
     return () => {
@@ -317,7 +321,7 @@ export default function ThreeDPlot({ panelId, series }: Props) {
   const yLabel = series[mapping[1]!]?.split('/').slice(-1)[0] ?? 'Y'
   const zLabel = series[mapping[2]!]?.split('/').slice(-1)[0] ?? 'Z'
 
-  // Build legend entries (one per trajectory group)
+  // Build legend entries (one per trajectory group) — must be before handleMouseMove
   const files = useFileStore((s) => s.files)
   const legendEntries: { color: string; label: string }[] = []
   for (let g = 0; g + 2 < series.length; g += 3) {
@@ -338,9 +342,82 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     legendEntries.push({ color: PLOT_COLORS[g / 3 % PLOT_COLORS.length]!, label })
   }
 
+  // Point mode: find nearest 3D point projected to screen
+  const cursorMode = useSettingsStore((s) => s.cursorMode)
+  const setCursor = useCursorStore((s) => s.setCursor)
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (cursorMode === 'off') { setPointInfo(null); return }
+    const el = containerRef.current
+    const camera = cameraRef.current
+    const groups = cursorGroupsRef.current
+    if (!el || !camera || groups.length === 0) { setPointInfo(null); return }
+
+    const rect = el.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const w = el.clientWidth
+    const h = el.clientHeight
+
+    let bestDist = 30 * 30
+    let bestScreenX = 0, bestScreenY = 0
+    let bestCurveIdx = 0, bestPointIdx = 0
+
+    const vec = new THREE.Vector3()
+    for (let gi = 0; gi < groups.length; gi++) {
+      const g = groups[gi]!
+      const len = g.timestamps.length
+      for (let i = 0; i < len; i++) {
+        vec.set(g.positions[i * 3]!, g.positions[i * 3 + 1]!, g.positions[i * 3 + 2]!)
+        vec.project(camera)
+        const sx = (vec.x * 0.5 + 0.5) * w
+        const sy = (-vec.y * 0.5 + 0.5) * h
+        const dx = sx - mx, dy = sy - my
+        const d = dx * dx + dy * dy
+        if (d < bestDist) {
+          bestDist = d; bestScreenX = sx; bestScreenY = sy
+          bestCurveIdx = gi; bestPointIdx = i
+        }
+      }
+    }
+
+    if (bestDist < 30 * 30) {
+      if (cursorMode === 'time') {
+        setCursor(groups[bestCurveIdx]!.timestamps[bestPointIdx]!)
+      }
+      if (cursorMode === 'point') {
+        const g = groups[bestCurveIdx]!
+        setPointInfo({
+          x: bestScreenX, y: bestScreenY,
+          label: legendEntries[bestCurveIdx]?.label ?? '',
+          vals: [g.positions[bestPointIdx * 3]!, g.positions[bestPointIdx * 3 + 1]!, g.positions[bestPointIdx * 3 + 2]!],
+          color: legendEntries[bestCurveIdx]?.color ?? '#fff',
+        })
+      } else {
+        setPointInfo(null)
+      }
+    } else {
+      setPointInfo(null)
+      if (cursorMode === 'time') setCursor(null)
+    }
+  }, [cursorMode, legendEntries, setCursor])
+
+  const handleMouseLeave = useCallback(() => { setPointInfo(null) }, [])
+
   return (
-    <div className="three-d-plot" style={{ position: 'relative', overflow: 'hidden' }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }} />
+    <div className="three-d-plot" style={{ position: 'relative', overflow: 'hidden' }} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'auto' }} />
+      {pointInfo && (
+        <>
+          <div className="cursor-dot" style={{ position: 'absolute', left: pointInfo.x - 4, top: pointInfo.y - 4, width: 9, height: 9, background: '#000', border: `2px solid ${pointInfo.color}`, borderRadius: '50%', pointerEvents: 'none', zIndex: 20 }} />
+          <div className="point-tooltip" style={{ position: 'absolute', left: pointInfo.x + 12, top: pointInfo.y - 20, pointerEvents: 'none', zIndex: 20 }}>
+            <div style={{ color: pointInfo.color }}>{pointInfo.label}</div>
+            <div>x: {pointInfo.vals[0]?.toFixed(4)}</div>
+            <div>y: {pointInfo.vals[1]?.toFixed(4)}</div>
+            <div>z: {pointInfo.vals[2]?.toFixed(4)}</div>
+          </div>
+        </>
+      )}
       {legendEntries.length > 0 && showLegend && (
         <div className={`xy-legend xy-legend-${legendPosition}`}>
           {legendEntries.map((entry, i) => (
