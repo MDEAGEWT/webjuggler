@@ -68,7 +68,7 @@ export default function ThreeDPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
   const cursorGroupsRef = useRef<{ sphere: THREE.Mesh; positions: Float32Array; timestamps: Float64Array }[]>([])
-  const data = useDataStore((s) => s.data)
+  const data = useDataStore((s) => s.adjustedData)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const theme = useThemeStore((s) => s.theme)

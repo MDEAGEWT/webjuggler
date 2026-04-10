@@ -13,7 +13,7 @@ export default function PlaybackBar() {
   const cursor = useCursorStore((s) => s.timestamp)
   const xMin = useZoomStore((s) => s.xMin)
   const xMax = useZoomStore((s) => s.xMax)
-  const data = useDataStore((s) => s.data)
+  const data = useDataStore((s) => s.adjustedData)
 
   const lastFrameRef = useRef<number | null>(null)
   const rafRef = useRef<number>(0)

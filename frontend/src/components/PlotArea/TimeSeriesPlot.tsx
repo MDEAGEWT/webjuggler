@@ -67,7 +67,7 @@ const OVERLAY_EST_WIDTH = 160
 export default function TimeSeriesPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const plotRef = useRef<uPlot | null>(null)
-  const data = useDataStore((s) => s.data)
+  const data = useDataStore((s) => s.adjustedData)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const setCursor = useCursorStore((s) => s.setCursor)
   const removeSeries = useLayoutStore((s) => s.removeSeries)

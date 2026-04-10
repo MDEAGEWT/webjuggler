@@ -87,7 +87,7 @@ export default function AttitudeView({ panelId: _panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
   const axisGroupsRef = useRef<THREE.Group[]>([])
-  const data = useDataStore((s) => s.data)
+  const data = useDataStore((s) => s.adjustedData)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const theme = useThemeStore((s) => s.theme)

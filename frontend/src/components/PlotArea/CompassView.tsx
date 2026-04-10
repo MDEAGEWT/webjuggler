@@ -58,7 +58,7 @@ export default function CompassView({ panelId: _panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const needleDataRef = useRef<NeedleInfo[]>([])
   const theme = useThemeStore((s) => s.theme)
-  const data = useDataStore((s) => s.data)
+  const data = useDataStore((s) => s.adjustedData)
   const colorOverrides = useLayoutStore((s) => s.colorOverrides)
   const cursorTimestamp = useCursorStore((s) => s.timestamp)
 

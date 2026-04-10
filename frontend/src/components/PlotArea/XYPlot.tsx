@@ -23,7 +23,7 @@ interface Props {
 export default function XYPlot({ panelId, series }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const data = useDataStore((s) => s.data)
+  const data = useDataStore((s) => s.adjustedData)
   const fetchFields = useDataStore((s) => s.fetchFields)
   const cursorTs = useCursorStore((s) => s.timestamp)
   const setCursor = useCursorStore((s) => s.setCursor)

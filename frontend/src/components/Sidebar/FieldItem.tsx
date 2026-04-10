@@ -32,7 +32,7 @@ export default function FieldItem({
   onSelect,
 }: Props) {
   const cursorTs = useCursorStore((s) => s.timestamp)
-  const fieldData = useDataStore((s) => s.data[fieldPath])
+  const fieldData = useDataStore((s) => s.adjustedData[fieldPath])
 
   function handleDragStart(e: React.DragEvent) {
     // If this item is selected, drag all selected; otherwise just this one
