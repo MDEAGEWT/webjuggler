@@ -73,9 +73,11 @@ public class DataController {
 
     private Long extractGpsOffsetUs(ULogFile ulog) {
         try {
-            Long offset = tryGpsOffset(ulog, "sensor_gnss_relative", "/time_utc_usec");
+            Long offset;
+            offset = tryGpsOffset(ulog, "piksi_rtk", "/utc_usec");
             if (offset != null) return offset;
-            return tryGpsOffset(ulog, "piksi_rtk", "/time_utc_usec");
+            offset = tryGpsOffset(ulog, "sensor_gnss_relative", "/time_utc_usec");
+            return offset;
         } catch (Exception e) {
             return null;
         }
