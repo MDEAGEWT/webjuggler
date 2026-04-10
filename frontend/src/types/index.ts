@@ -65,3 +65,8 @@ export interface TabDef {
   redoStack: LayoutNode[]
   editingFunctionId?: string
 }
+
+export interface FileTimeMeta {
+  startTimeMicros: number
+  gpsOffsetUs: number | null
+}
