@@ -23,8 +23,18 @@ export async function topics(id: string): Promise<Topic[]> {
   return res.topics
 }
 
-export function info(id: string): Promise<FileInfo> {
-  return apiFetch<FileInfo>(`/files/${id}/info`)
+export interface InfoResponse {
+  info: Record<string, string>
+  parameters: { name: string; type: string; floatValue: number; intValue: number }[]
+  duration: number
+  topicCount: number
+  totalDataPoints: number
+  startTimeMicros: number
+  gpsOffsetUs: number | null
+}
+
+export async function info(id: string): Promise<InfoResponse> {
+  return apiFetch<InfoResponse>(`/files/${id}/info`)
 }
 
 interface DataResponse {

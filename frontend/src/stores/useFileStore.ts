@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { topics as fetchTopics } from '../api/files'
+import { topics as fetchTopics, info as fetchInfo } from '../api/files'
 import type { Topic } from '../types'
 
 export interface LoadedFile {
@@ -8,6 +8,8 @@ export interface LoadedFile {
   filename: string
   shortName: string  // filename without .ulg extension
   topics: Topic[]
+  startTimeMicros: number
+  gpsOffsetUs: number | null
 }
 
 interface FileState {
@@ -32,16 +34,24 @@ export const useFileStore = create<FileState>()(
         const shortName = deriveShortName(filename)
         // Add placeholder entry immediately
         set((state) => ({
-          files: [...state.files, { fileId, filename, shortName, topics: [] }],
+          files: [...state.files, { fileId, filename, shortName, topics: [], startTimeMicros: 0, gpsOffsetUs: null }],
         }))
 
         try {
-          const t = await fetchTopics(fileId)
+          const [t, infoData] = await Promise.all([
+            fetchTopics(fileId),
+            fetchInfo(fileId),
+          ])
           set((state) => ({
             files: state.files.map((f) =>
-              f.fileId === fileId ? { ...f, topics: t } : f,
+              f.fileId === fileId
+                ? { ...f, topics: t, startTimeMicros: infoData.startTimeMicros, gpsOffsetUs: infoData.gpsOffsetUs }
+                : f,
             ),
           }))
+          // Trigger adjustedData recomputation
+          const { useDataStore } = await import('./useDataStore')
+          useDataStore.getState().recomputeAdjusted()
         } catch (err) {
           console.error('Failed to fetch topics:', err)
           const { useToastStore } = await import('./useToastStore')
@@ -53,10 +63,12 @@ export const useFileStore = create<FileState>()(
         }
       },
 
-      removeFile: (fileId) =>
+      removeFile: (fileId) => {
         set((state) => ({
           files: state.files.filter((f) => f.fileId !== fileId),
-        })),
+        }))
+        import('./useDataStore').then((m) => m.useDataStore.getState().recomputeAdjusted())
+      },
     }),
     {
       name: 'webjuggler-files',
