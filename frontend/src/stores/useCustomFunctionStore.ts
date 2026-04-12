@@ -25,7 +25,9 @@ export const useCustomFunctionStore = create<CustomFunctionState>()(
       selectedId: null,
 
       addFunction: (def) => {
-        const id = crypto.randomUUID()
+        const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
         const fullDef = { ...def, id }
         set((state) => ({
           functions: { ...state.functions, [id]: fullDef },

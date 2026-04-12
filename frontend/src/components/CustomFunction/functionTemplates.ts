@@ -66,4 +66,16 @@ export const functionTemplates: FunctionTemplate[] = [
     description: '3D Euclidean distance between (value,v1,v2) and (v3,v4,v5)',
     requiredInputs: 5,
   },
+  {
+    name: 'vxy',
+    expression: 'sqrt(value^2 + v1^2)',
+    description: '2D velocity magnitude: sqrt(vx² + vy²)',
+    requiredInputs: 1,
+  },
+  {
+    name: 'vxyz',
+    expression: 'sqrt(value^2 + v1^2 + v2^2)',
+    description: '3D velocity magnitude: sqrt(vx² + vy² + vz²)',
+    requiredInputs: 2,
+  },
 ]
