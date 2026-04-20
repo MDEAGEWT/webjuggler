@@ -25,6 +25,7 @@ export default function App() {
   const activeTab = useLayoutStore((s) =>
     s.tabs.find((t) => t.id === s.activeTabId)
   )
+  const [authChecked, setAuthChecked] = useState(false)
 
   // Apply persisted theme on mount
   useEffect(() => {
@@ -34,6 +35,34 @@ export default function App() {
   useEffect(() => {
     useConfigStore.getState().loadConfig()
   }, [])
+
+  // Validate an existing NAS-mode token on startup so an expired session
+  // sends the user to LoginPage instead of rendering a broken main UI.
+  useEffect(() => {
+    if (!loaded || authChecked) return
+    const current = useAuthStore.getState().token
+    if (mode !== 'nas' || !current) {
+      setAuthChecked(true)
+      return
+    }
+    fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${current}` },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          useAuthStore.getState().logout()
+        } else {
+          const body = (await res.json()) as { token: string }
+          const username = useAuthStore.getState().username ?? ''
+          useAuthStore.getState().setAuth(body.token, username)
+        }
+      })
+      .catch(() => {
+        // Network error: leave state alone so the user can retry
+      })
+      .finally(() => setAuthChecked(true))
+  }, [loaded, authChecked, mode])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -120,7 +149,7 @@ export default function App() {
     }
   }, [addFile])
 
-  if (!loaded) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Loading...</div>
+  if (!loaded || !authChecked) return <div className="app" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>Loading...</div>
 
   if (mode === 'nas' && !token) return <LoginPage hideRegister />
 

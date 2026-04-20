@@ -30,23 +30,34 @@ export async function apiFetch<T>(
   })
 
   if (res.status === 401) {
-    // Auth endpoints: let the caller handle 401 (wrong credentials)
+    // Auth endpoints: surface a clean, user-facing message to LoginPage
     if (path.startsWith('/auth/')) {
       const text = await res.text()
-      throw new ApiError(401, text || 'Invalid credentials')
+      let message = 'Incorrect username or password. Please try again.'
+      try {
+        const parsed = JSON.parse(text) as { error?: string }
+        if (parsed.error && parsed.error !== 'invalid credentials') {
+          message = parsed.error
+        }
+      } catch {
+        if (text) message = text
+      }
+      throw new ApiError(401, message)
     }
-    // SOLO mode: 401 should not happen
+    // Session expired: logout cleanly so App re-renders LoginPage (NAS mode)
     const { useConfigStore } = await import('../stores/useConfigStore')
-    if (useConfigStore.getState().mode === 'solo') {
+    if (useConfigStore.getState().mode === 'nas') {
+      const { useAuthStore } = await import('../stores/useAuthStore')
+      const { useToastStore } = await import('../stores/useToastStore')
+      // Dedupe toast when multiple parallel requests hit 401 at once
+      const hadToken = useAuthStore.getState().token !== null
+      useAuthStore.getState().logout()
+      if (hadToken) {
+        useToastStore.getState().addToast('Session expired — please log in again', 'error')
+      }
+    } else {
       console.warn('Unexpected 401 in SOLO mode')
-      throw new ApiError(401, 'Unauthorized')
     }
-    // NAS mode: session expired
-    localStorage.removeItem('token')
-    localStorage.removeItem('username')
-    const { useToastStore } = await import('../stores/useToastStore')
-    useToastStore.getState().addToast('Session expired, please login again', 'error')
-    window.location.reload()
     throw new ApiError(401, 'Unauthorized')
   }
 
