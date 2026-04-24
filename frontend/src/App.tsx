@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuthStore } from './stores/useAuthStore'
 import { useConfigStore } from './stores/useConfigStore'
 import { useLayoutStore, selectActiveRoot } from './stores/useLayoutStore'
@@ -26,6 +26,7 @@ export default function App() {
     s.tabs.find((t) => t.id === s.activeTabId)
   )
   const [authChecked, setAuthChecked] = useState(false)
+  const authCheckStarted = useRef(false)
 
   // Apply persisted theme on mount
   useEffect(() => {
@@ -38,8 +39,12 @@ export default function App() {
 
   // Validate an existing NAS-mode token on startup so an expired session
   // sends the user to LoginPage instead of rendering a broken main UI.
+  // Ref guard (not state) so this effect cannot re-fire itself via its own
+  // state update — prevents the "Maximum update depth exceeded" crash.
   useEffect(() => {
-    if (!loaded || authChecked) return
+    if (!loaded || authCheckStarted.current) return
+    authCheckStarted.current = true
+
     const current = useAuthStore.getState().token
     if (mode !== 'nas' || !current) {
       setAuthChecked(true)
@@ -62,7 +67,7 @@ export default function App() {
         // Network error: leave state alone so the user can retry
       })
       .finally(() => setAuthChecked(true))
-  }, [loaded, authChecked, mode])
+  }, [loaded, mode])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
