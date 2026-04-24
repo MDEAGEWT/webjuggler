@@ -189,6 +189,11 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     const xRange = xMax - xMin || 1
     const yRange = yMax - yMin || 1
     const zRange = zMax - zMin || 1
+    // Equal-aspect: share one scale across axes so spatial shape is preserved
+    const maxRange = Math.max(xRange, yRange, zRange)
+    const xMid = (xMin + xMax) / 2
+    const yMid = (yMin + yMax) / 2
+    const zMid = (zMin + zMax) / 2
 
     // Track disposables for cleanup
     const disposables: { dispose: () => void }[] = []
@@ -198,9 +203,9 @@ export default function ThreeDPlot({ panelId, series }: Props) {
     for (const g of groups) {
       const positions = new Float32Array(g.len * 3)
       for (let i = 0; i < g.len; i++) {
-        positions[i * 3]     = ((g.xData.values[i]! * negX - xMin) / xRange) * 2 - 1
-        positions[i * 3 + 1] = ((g.zData.values[i]! * negZ - zMin) / zRange) * 2 - 1
-        positions[i * 3 + 2] = ((g.yData.values[i]! * negY - yMin) / yRange) * 2 - 1
+        positions[i * 3]     = ((g.xData.values[i]! * negX - xMid) / maxRange) * 2
+        positions[i * 3 + 1] = ((g.zData.values[i]! * negZ - zMid) / maxRange) * 2
+        positions[i * 3 + 2] = ((g.yData.values[i]! * negY - yMid) / maxRange) * 2
       }
 
       const geometry = new THREE.BufferGeometry()
