@@ -16,6 +16,31 @@ function findPlotNode(node: LayoutNode, id: string): PlotNode | null {
   return findPlotNode(node.children[0], id) ?? findPlotNode(node.children[1], id)
 }
 
+// Equal-aspect bounds: same units per pixel on X and Y so spatial shape is
+// preserved. Picks the larger of the two natural scales so data never clips,
+// then extends the shorter axis symmetrically around its midpoint.
+function equalAspectBounds(
+  xMin: number, xMax: number, yMin: number, yMax: number,
+  plotW: number, plotH: number,
+) {
+  const xRange = (xMax - xMin) || 1
+  const yRange = (yMax - yMin) || 1
+  // 5% padding first
+  xMin -= xRange * 0.05; xMax += xRange * 0.05
+  yMin -= yRange * 0.05; yMax += yRange * 0.05
+  const paddedX = xMax - xMin
+  const paddedY = yMax - yMin
+  const upp = Math.max(paddedX / plotW, paddedY / plotH)
+  const visX = upp * plotW
+  const visY = upp * plotH
+  const xMid = (xMin + xMax) / 2
+  const yMid = (yMin + yMax) / 2
+  return {
+    xMin: xMid - visX / 2, xMax: xMid + visX / 2,
+    yMin: yMid - visY / 2, yMax: yMid + visY / 2,
+  }
+}
+
 interface Props {
   panelId: string
   series: string[]
@@ -84,27 +109,22 @@ export default function XYPlot({ panelId, series }: Props) {
     ctx.scale(dpr, dpr)
 
     // Compute bounds across ALL curves
-    let xMin = Infinity, xMax = -Infinity
-    let yMin = Infinity, yMax = -Infinity
+    let dxMin = Infinity, dxMax = -Infinity
+    let dyMin = Infinity, dyMax = -Infinity
     for (const curve of curves) {
       const len = Math.min(curve.xVals.length, curve.yVals.length)
       for (let i = 0; i < len; i++) {
         const xv = curve.xVals[i]!, yv = curve.yVals[i]!
-        if (Number.isFinite(xv)) { if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv }
-        if (Number.isFinite(yv)) { if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv }
+        if (Number.isFinite(xv)) { if (xv < dxMin) dxMin = xv; if (xv > dxMax) dxMax = xv }
+        if (Number.isFinite(yv)) { if (yv < dyMin) dyMin = yv; if (yv > dyMax) dyMax = yv }
       }
     }
-    // Add padding
-    const xRange = (xMax - xMin) || 1
-    const yRange = (yMax - yMin) || 1
-    xMin -= xRange * 0.05
-    xMax += xRange * 0.05
-    yMin -= yRange * 0.05
-    yMax += yRange * 0.05
 
     const margin = { top: 20, right: 20, bottom: 40, left: 60 }
     const plotW = w - margin.left - margin.right
     const plotH = h - margin.top - margin.bottom
+
+    const { xMin, xMax, yMin, yMax } = equalAspectBounds(dxMin, dxMax, dyMin, dyMax, plotW, plotH)
 
     const toX = (v: number) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW
     const toY = (v: number) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH
@@ -265,20 +285,18 @@ export default function XYPlot({ panelId, series }: Props) {
     const plotW = el.clientWidth - margin.left - margin.right
     const plotH = el.clientHeight - margin.top - margin.bottom
 
-    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity
+    let dxMin = Infinity, dxMax = -Infinity, dyMin = Infinity, dyMax = -Infinity
     for (let c = 0; c + 1 < series.length; c += 2) {
       const xd = data[series[c]!], yd = data[series[c + 1]!]
       if (!xd || !yd) continue
       const len = Math.min(xd.values.length, yd.values.length)
       for (let i = 0; i < len; i++) {
         const xv = xd.values[i]!, yv = yd.values[i]!
-        if (Number.isFinite(xv)) { if (xv < xMin) xMin = xv; if (xv > xMax) xMax = xv }
-        if (Number.isFinite(yv)) { if (yv < yMin) yMin = yv; if (yv > yMax) yMax = yv }
+        if (Number.isFinite(xv)) { if (xv < dxMin) dxMin = xv; if (xv > dxMax) dxMax = xv }
+        if (Number.isFinite(yv)) { if (yv < dyMin) dyMin = yv; if (yv > dyMax) dyMax = yv }
       }
     }
-    const xRange = (xMax - xMin) || 1, yRange = (yMax - yMin) || 1
-    xMin -= xRange * 0.05; xMax += xRange * 0.05
-    yMin -= yRange * 0.05; yMax += yRange * 0.05
+    const { xMin, xMax, yMin, yMax } = equalAspectBounds(dxMin, dxMax, dyMin, dyMax, plotW, plotH)
 
     const toX = (v: number) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW
     const toY = (v: number) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH
